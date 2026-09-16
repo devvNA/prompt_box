@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/onboarding/screens/onboarding_screen.dart';
+import 'core/utils/supabase_config.dart';
+import 'features/auth/screens/auth_gate.dart';
 
-void main() {
-  runApp(const PromptStudioApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.anonKey,
+  );
+
+  runApp(const ProviderScope(child: PromptStudioApp()));
 }
 
 class PromptStudioApp extends StatelessWidget {
@@ -15,7 +25,7 @@ class PromptStudioApp extends StatelessWidget {
     return MaterialApp(
       title: 'PromptBox',
       theme: AppTheme.lightTheme,
-      home: const OnboardingScreen(),
+      home: const AuthGate(),
       debugShowCheckedModeBanner: false,
     );
   }

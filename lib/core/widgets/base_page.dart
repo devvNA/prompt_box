@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../features/dashboard/screens/dashboard_screen.dart';
@@ -23,9 +24,14 @@ class BaseTabItem {
 }
 
 /// HomePage wrapper embedding DashboardScreen without redundant bottom nav
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
+  @override
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     return const DashboardScreen(showBottomNav: false);
@@ -33,9 +39,14 @@ class HomePage extends StatelessWidget {
 }
 
 /// ExplorePage wrapper embedding ExploreScreen without redundant bottom nav
-class ExplorePage extends StatelessWidget {
+class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
 
+  @override
+  ConsumerState<ExplorePage> createState() => _ExplorePageState();
+}
+
+class _ExplorePageState extends ConsumerState<ExplorePage> {
   @override
   Widget build(BuildContext context) {
     return const ExploreScreen(showBottomNav: false);
@@ -44,7 +55,7 @@ class ExplorePage extends StatelessWidget {
 
 /// BasePage acts as the primary parent scaffold holding the bottom navigation
 /// and switching screens via [IndexedStack] to preserve each tab's state.
-class BasePage extends StatefulWidget {
+class BasePage extends ConsumerStatefulWidget {
   final int initialIndex;
   final List<BaseTabItem>? customTabs;
 
@@ -56,10 +67,10 @@ class BasePage extends StatefulWidget {
   }
 
   @override
-  State<BasePage> createState() => BasePageState();
+  ConsumerState<BasePage> createState() => BasePageState();
 }
 
-class BasePageState extends State<BasePage> {
+class BasePageState extends ConsumerState<BasePage> {
   late int _currentIndex;
   late final List<BaseTabItem> _tabs;
 

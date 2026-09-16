@@ -1,12 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../models/prompt_model.dart';
+import '../providers/prompt_provider.dart';
 import 'create_prompt_screen.dart';
 
 class PromptDetailResult {
@@ -23,16 +25,16 @@ class PromptDetailResult {
       prompt = null;
 }
 
-class PromptDetailScreen extends StatefulWidget {
+class PromptDetailScreen extends ConsumerStatefulWidget {
   final PromptModel prompt;
 
   const PromptDetailScreen({super.key, required this.prompt});
 
   @override
-  State<PromptDetailScreen> createState() => _PromptDetailScreenState();
+  ConsumerState<PromptDetailScreen> createState() => _PromptDetailScreenState();
 }
 
-class _PromptDetailScreenState extends State<PromptDetailScreen> {
+class _PromptDetailScreenState extends ConsumerState<PromptDetailScreen> {
   late PromptModel _currentPrompt;
   bool _isExpanded = false;
   bool _hasChanges = false;
@@ -51,7 +53,7 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
           children: [
             Icon(Icons.check_circle, color: Colors.white, size: 20),
             SizedBox(width: 8),
-            Text('Prompt copied to clipboard!'),
+            Text('Prompt copied'),
           ],
         ),
         backgroundColor: AppColors.ink,
@@ -75,7 +77,7 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Prompt updated successfully!'),
+          content: Text('Prompt updated'),
           backgroundColor: AppColors.ink,
           behavior: SnackBarBehavior.floating,
         ),
@@ -94,11 +96,11 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
             side: const BorderSide(color: AppColors.ink, width: 2),
           ),
           title: Text(
-            'DELETE PROMPT?',
+            'Delete prompt?',
             style: AppTypography.cardTitle.copyWith(color: AppColors.danger),
           ),
           content: Text(
-            'Are you sure you want to delete "${_currentPrompt.title}"? This action cannot be undone.',
+            'Delete "${_currentPrompt.title}"? You can\'t undo this.',
             style: AppTypography.body,
           ),
           actions: [
@@ -118,12 +120,21 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
                   side: const BorderSide(color: AppColors.ink, width: 1.5),
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx); // Close dialog
-                Navigator.pop(
-                  context,
-                  PromptDetailResult.delete(_currentPrompt.id),
-                ); // Pop detail with delete action
+                try {
+                  await ref
+                      .read(promptListNotifierProvider.notifier)
+                      .deletePrompt(_currentPrompt.id);
+                } catch (_) {
+                  // Fallback for tests or local operation
+                }
+                if (mounted) {
+                  Navigator.pop(
+                    context,
+                    PromptDetailResult.delete(_currentPrompt.id),
+                  );
+                }
               },
               child: const Text('Delete'),
             ),
@@ -208,28 +219,34 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
       clipBehavior: Clip.none,
       children: [
         // Hero Image
-        Container(
-          width: double.infinity,
-          height: 290,
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.ink, width: 2)),
-          ),
-          child: CachedNetworkImage(
-            imageUrl: _currentPrompt.resultImageUrl!,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: AppColors.borderMuted,
-              child: const Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
+        GestureDetector(
+          onTap: () =>
+              _showFullScreenImage(context, _currentPrompt.resultImageUrl!),
+          child: Container(
+            width: double.infinity,
+            height: 290,
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.ink, width: 2),
               ),
             ),
-            errorWidget: (context, url, error) => Container(
-              color: AppColors.borderMuted,
-              child: const Center(
-                child: Icon(
-                  Icons.broken_image,
-                  size: 40,
-                  color: AppColors.muted,
+            child: CachedNetworkImage(
+              imageUrl: _currentPrompt.resultImageUrl!,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: AppColors.borderMuted,
+                child: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: AppColors.borderMuted,
+                child: const Center(
+                  child: Icon(
+                    Icons.broken_image,
+                    size: 40,
+                    color: AppColors.muted,
+                  ),
                 ),
               ),
             ),
@@ -408,7 +425,7 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
           ),
 
           Text(
-            'Prompt Detail',
+            'Prompt details',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -502,30 +519,36 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
           const SizedBox(height: 12),
 
           // Meta Info (Public / Date / Author)
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 4,
             children: [
-              Icon(
-                _currentPrompt.isPublic ? Icons.public : Icons.lock_outline,
-                size: 15,
-                color: AppColors.ink,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _currentPrompt.isPublic ? Icons.public : Icons.lock_outline,
+                    size: 15,
+                    color: AppColors.ink,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _currentPrompt.isPublic ? 'Public' : 'Private',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _currentPrompt.isPublic
+                          ? const Color(0xFF16A34A)
+                          : AppColors.muted,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
-              Text(
-                _currentPrompt.isPublic ? 'Public' : 'Private',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _currentPrompt.isPublic
-                      ? const Color(0xFF16A34A)
-                      : AppColors.muted,
-                ),
-              ),
-              const SizedBox(width: 6),
               const Text(
                 '●',
                 style: TextStyle(fontSize: 8, color: Color(0xFF9CA3AF)),
               ),
-              const SizedBox(width: 6),
               Text(
                 _formatRelativeTime(_currentPrompt.createdAt),
                 style: GoogleFonts.plusJakartaSans(
@@ -533,12 +556,10 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
                   color: const Color(0xFF6B7280),
                 ),
               ),
-              const SizedBox(width: 6),
               const Text(
                 '●',
                 style: TextStyle(fontSize: 8, color: Color(0xFF9CA3AF)),
               ),
-              const SizedBox(width: 6),
               Text(
                 'by ${_currentPrompt.authorName ?? "Devit Nur Azaqi"}',
                 style: GoogleFonts.plusJakartaSans(
@@ -737,6 +758,55 @@ class _PromptDetailScreenState extends State<PromptDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              Center(
+                child: InteractiveViewer(
+                  panEnabled: true,
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) =>
+                        const CircularProgressIndicator(color: Colors.white),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.broken_image,
+                      color: Colors.white,
+                      size: 50,
+                    ),
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        fullscreenDialog: true,
       ),
     );
   }

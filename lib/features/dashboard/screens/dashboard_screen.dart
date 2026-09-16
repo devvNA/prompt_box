@@ -1,80 +1,33 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../explore/screens/explore_screen.dart';
 import '../../prompt/models/prompt_model.dart';
+import '../../prompt/providers/prompt_provider.dart';
 import '../../prompt/screens/create_prompt_screen.dart';
 import '../../prompt/screens/prompt_detail_screen.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   final bool showBottomNav;
 
   const DashboardScreen({super.key, this.showBottomNav = true});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final List<String> categories = ['All', 'Image', 'Text', 'Design', 'Code'];
   String selectedCategory = 'All';
 
-  final List<Map<String, dynamic>> _items = [
-    {
-      'id': '1',
-      'title': 'Cute Cat Portrait',
-      'type': 'IMAGE',
-      'category': 'Image Generation',
-      'content': 'A cinematic cute fluffy cat portrait, soft golden hour lighting, 8k resolution, detailed fur, shallow depth of field, warm cozy aesthetic.',
-      'imageUrl': 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
-      'tags': ['#photo', '#animal'],
-      'isPublic': true,
-      'author': 'Devit Nur Azaqi',
-      'likes': 12,
-    },
-    {
-      'id': '2',
-      'title': 'Minimalist Architecture',
-      'type': 'IMAGE',
-      'category': 'UI/UX Design',
-      'content': 'Clean minimalist architectural facade with brutalist concrete geometry, stark contrast shadows, neutral palette, and modern aesthetic.',
-      'imageUrl': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
-      'tags': ['#design', '#minimal'],
-      'isPublic': true,
-      'author': 'Devit Nur Azaqi',
-      'likes': 24,
-    },
-    {
-      'id': '3',
-      'title': 'Flutter Clean Architecture',
-      'type': 'TXT',
-      'category': 'Code Assistant',
-      'content': 'Write a clean architecture layered pattern for a Flutter application using Riverpod StateNotifier, repository pattern, and immutable models with serialization.',
-      'imageUrl': null, // No image for TXT
-      'tags': ['#flutter', '#code'],
-      'isPublic': false,
-      'author': 'Devit Nur Azaqi',
-      'likes': 8,
-    },
-    {
-      'id': '4',
-      'title': 'Cinematic Mountain',
-      'type': 'IMAGE',
-      'category': 'Image Generation',
-      'content': 'Epic cinematic landscape of misty mountain peaks at sunrise, dramatic volumetric god-rays, 35mm film grain, hyper-realistic details.',
-      'imageUrl': 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
-      'tags': ['#landscape', '#cinematic'],
-      'isPublic': true,
-      'author': 'Devit Nur Azaqi',
-      'likes': 31,
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final promptsAsync = ref.watch(promptListNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -85,7 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _buildHeader(),
                 _buildSearchBar(),
                 _buildCategories(),
-                Expanded(child: _buildGrid()),
+                Expanded(child: _buildGrid(promptsAsync)),
               ],
             ),
 
@@ -287,98 +240,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildGrid() {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.pagePadding,
-        8,
-        AppSpacing.pagePadding,
-        100,
-      ), // Bottom padding for FAB and Nav
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.7,
-      ),
-      itemCount: _items.length,
-      itemBuilder: (context, index) {
-        final item = _items[index];
-        return _buildCard(item);
+  Widget _buildGrid(AsyncValue<List<PromptModel>> promptsAsync) {
+    return promptsAsync.when(
+      data: (prompts) {
+        final filtered = selectedCategory == 'All'
+            ? prompts
+            : prompts.where((p) {
+                if (selectedCategory == 'Image')
+                  return p.category == 'Image Generation';
+                if (selectedCategory == 'Text')
+                  return p.category == 'Text Generation';
+                if (selectedCategory == 'Design')
+                  return p.category == 'UI/UX Design';
+                if (selectedCategory == 'Code')
+                  return p.category == 'Code Assistant';
+                return p.category == selectedCategory;
+              }).toList();
+
+        if (filtered.isEmpty) {
+          return Center(
+            child: Text(
+              'No prompts found.',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () =>
+              ref.read(promptListNotifierProvider.notifier).refresh(),
+          color: AppColors.ink,
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.pagePadding,
+              8,
+              AppSpacing.pagePadding,
+              100,
+            ), // Bottom padding for FAB and Nav
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.7,
+            ),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              return _buildCard(filtered[index]);
+            },
+          ),
+        );
       },
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: AppColors.ink)),
+      error: (err, stack) => Center(
+        child: Text(
+          'Error loading prompts: $err',
+          style: GoogleFonts.plusJakartaSans(color: AppColors.danger),
+        ),
+      ),
     );
   }
 
-  void _openDetail(Map<String, dynamic> item) async {
-    final prompt = PromptModel(
-      id: (item['id'] ?? item['title']).toString(),
-      title: item['title'] as String,
-      content:
-          (item['content'] ??
-                  'A cinematic prompt for ${item['title']} with professional composition, high detail, and creative styling.')
-              as String,
-      category:
-          (item['category'] ??
-                  (item['type'] == 'IMAGE'
-                      ? 'Image Generation'
-                      : 'Text Generation'))
-              as String,
-      tags: (item['tags'] as List<dynamic>)
-          .map((e) => e.toString().replaceAll('#', ''))
-          .toList(),
-      resultImageUrl: item['imageUrl'] as String?,
-      isPublic: (item['isPublic'] ?? true) as bool,
-      authorName: (item['author'] ?? 'Devit Nur Azaqi') as String,
-      likes: (item['likes'] ?? 0) as int,
-    );
-
+  void _openDetail(PromptModel prompt) async {
     final result = await Navigator.of(context).push<PromptDetailResult>(
       MaterialPageRoute(builder: (_) => PromptDetailScreen(prompt: prompt)),
     );
 
     if (result != null && mounted) {
       if (result.action == 'delete') {
-        setState(() {
-          _items.removeWhere(
-            (i) => (i['id'] ?? i['title']).toString() == result.deletedId,
-          );
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Prompt deleted successfully'),
+            content: Text('Prompt deleted'),
             backgroundColor: AppColors.ink,
             behavior: SnackBarBehavior.floating,
           ),
         );
-      } else if (result.action == 'update' && result.prompt != null) {
-        final updated = result.prompt!;
-        setState(() {
-          final index = _items.indexWhere(
-            (i) => (i['id'] ?? i['title']).toString() == updated.id,
-          );
-          if (index != -1) {
-            _items[index] = {
-              'id': updated.id,
-              'title': updated.title,
-              'content': updated.content,
-              'category': updated.category,
-              'type': updated.hasImage ? 'IMAGE' : 'TXT',
-              'imageUrl': updated.resultImageUrl,
-              'tags': updated.tags
-                  .map((t) => t.startsWith('#') ? t : '#$t')
-                  .toList(),
-              'isPublic': updated.isPublic,
-              'author': updated.authorName ?? 'Devit Nur Azaqi',
-              'likes': updated.likes,
-            };
-          }
-        });
       }
     }
   }
 
-  Widget _buildCard(Map<String, dynamic> item) {
-    final isImage = item['type'] == 'IMAGE';
+  Widget _buildCard(PromptModel item) {
+    final isImage = item.hasImage;
 
     return GestureDetector(
       onTap: () => _openDetail(item),
@@ -420,7 +365,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               topRight: Radius.circular(14),
                             ),
                             child: CachedNetworkImage(
-                              imageUrl: item['imageUrl'] as String,
+                              imageUrl: item.resultImageUrl!,
                               fit: BoxFit.cover,
                             ),
                           )
@@ -443,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         border: Border.all(color: AppColors.ink, width: 2),
                       ),
                       child: Text(
-                        item['type'] as String,
+                        isImage ? 'IMAGE' : 'TXT',
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
@@ -465,7 +410,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['title'] as String,
+                      item.title,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -480,7 +425,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Wrap(
                       spacing: 4,
                       runSpacing: 4,
-                      children: (item['tags'] as List<String>).map((tag) {
+                      children: item.tags.take(3).map((tag) {
+                        final displayTag = tag.startsWith('#') ? tag : '#$tag';
                         return Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
@@ -491,7 +437,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            tag,
+                            displayTag,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -522,7 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${item['likes']}',
+                                '${item.likes}',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -607,28 +553,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildFloatingButton() {
     return GestureDetector(
-      onTap: () async {
-        final newPrompt = await Navigator.of(context).push<PromptModel>(
+      onTap: () {
+        Navigator.of(context).push<PromptModel>(
           MaterialPageRoute(builder: (_) => const CreatePromptScreen()),
         );
-        if (newPrompt != null) {
-          setState(() {
-            _items.insert(0, {
-              'id': newPrompt.id,
-              'title': newPrompt.title,
-              'content': newPrompt.content,
-              'category': newPrompt.category,
-              'type': newPrompt.hasImage ? 'IMAGE' : 'TXT',
-              'imageUrl': newPrompt.resultImageUrl,
-              'tags': newPrompt.tags
-                  .map((t) => t.startsWith('#') ? t : '#$t')
-                  .toList(),
-              'isPublic': newPrompt.isPublic,
-              'author': newPrompt.authorName ?? 'Devit Nur Azaqi',
-              'likes': 0,
-            });
-          });
-        }
       },
       child: Container(
         width: 56,

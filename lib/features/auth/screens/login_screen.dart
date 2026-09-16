@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/base_page.dart';
 import '../../../core/widgets/brutal_button.dart';
+import '../models/auth_state.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/custom_text_field.dart';
 
 enum AuthMode { signIn, signUp }
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   final AuthMode initialMode;
   final void Function(String email, String password)? onSignIn;
   final void Function(String name, String email, String password)? onSignUp;
@@ -23,10 +25,10 @@ class LoginScreen extends StatefulWidget {
   });
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   late AuthMode _currentMode;
   bool _obscurePassword = true;
 
@@ -119,20 +121,29 @@ class _LoginScreenState extends State<LoginScreen> {
       if (widget.onSignIn != null) {
         widget.onSignIn!(email, password);
       } else {
-        _showToast('Berhasil masuk sebagai $email');
+        ref.read(authNotifierProvider.notifier).signIn(email, password);
       }
     } else {
       final name = _nameController.text.trim();
       if (widget.onSignUp != null) {
         widget.onSignUp!(name, email, password);
       } else {
-        _showToast('Pendaftaran akun baru $email diproses!');
+        ref.read(authNotifierProvider.notifier).signUp(name, email, password);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthViewState>(authNotifierProvider, (previous, next) {
+      if (next.status == AuthStatus.error && next.errorMessage != null) {
+        _showToast(next.errorMessage!);
+      }
+    });
+
+    final authState = ref.watch(authNotifierProvider);
+    final isLoading = authState.status == AuthStatus.loading;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7EE),
       body: SafeArea(
@@ -152,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 20),
                   _buildTabSwitcher(),
                   const SizedBox(height: 20),
-                  _buildForm(),
+                  _buildForm(isLoading),
                   const SizedBox(height: 18),
                   _buildDivider(),
                   const SizedBox(height: 16),
@@ -331,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isLoading) {
     return Form(
       key: _formKey,
       child: Column(
@@ -346,7 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
               keyboardType: TextInputType.name,
               validator: (value) {
                 if (!_isSignIn && (value == null || value.trim().isEmpty)) {
-                  return 'Please enter your name';
+                  return 'Enter your name';
                 }
                 return null;
               },
@@ -362,11 +373,11 @@ class _LoginScreenState extends State<LoginScreen> {
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email';
+                return 'Enter your email address';
               }
               final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
               if (!emailRegex.hasMatch(value.trim())) {
-                return 'Please enter a valid email';
+                return 'Enter a valid email address (e.g. name@domain.com)';
               }
               return null;
             },
@@ -378,7 +389,7 @@ class _LoginScreenState extends State<LoginScreen> {
           CustomTextField(
             label: 'PASSWORD',
             controller: _passwordController,
-            hintText: _isSignIn ? 'Enter your password' : 'Create a password',
+            hintText: _isSignIn ? '••••••••' : 'At least 6 characters',
             obscureText: _obscurePassword,
             suffixIcon: IconButton(
               onPressed: () {
@@ -396,7 +407,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your password';
+                return 'Enter your password';
               }
               if (value.length < 6) {
                 return 'Password must be at least 6 characters';
@@ -411,7 +422,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: GestureDetector(
-                onTap: () => _showToast('Fitur reset kata sandi telah dibuka!'),
+                onTap: () => _showToast('Password reset is coming soon.'),
                 child: Text(
                   'Forgot password?',
                   style: GoogleFonts.plusJakartaSans(
@@ -429,25 +440,12 @@ class _LoginScreenState extends State<LoginScreen> {
           // Submit Button
           BrutalButton(
             text: _isSignIn ? 'Sign In' : 'Sign Up',
-            icon: Icons.arrow_forward,
+            icon: isLoading ? Icons.hourglass_empty : Icons.arrow_forward,
             isFullWidth: true,
-            onPressed: _handleSubmit,
+            onPressed: isLoading ? () {} : _handleSubmit,
           ),
 
           const SizedBox(height: 16),
-
-          // Dev Bypass Button
-          BrutalButton(
-            text: 'Dev Bypass to Dashboard',
-            icon: Icons.developer_mode,
-            isFullWidth: true,
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const BasePage()),
-              );
-            },
-          ),
         ],
       ),
     );
@@ -488,7 +486,8 @@ class _LoginScreenState extends State<LoginScreen> {
             height: 20,
             child: SvgPicture.asset('assets/icons/google.svg'),
           ),
-          onTap: () => _showToast('Melanjutkan dengan Akun Google...'),
+          onTap: () =>
+              ref.read(authNotifierProvider.notifier).signInWithGoogle(),
         ),
 
         const SizedBox(height: 10),
@@ -497,7 +496,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _SocialButton(
           text: 'Continue with Apple',
           icon: const Icon(Icons.apple, size: 22, color: AppColors.ink),
-          onTap: () => _showToast('Melanjutkan dengan Akun Apple...'),
+          onTap: () =>
+              _showToast('Apple sign-in is coming soon. Use email or Google.'),
         ),
       ],
     );

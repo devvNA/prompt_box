@@ -73,22 +73,64 @@ class PromptModel {
   }
 
   factory PromptModel.fromMap(Map<String, dynamic> map) {
+    // Extract category name if joined from Supabase 'categories' table
+    String category = 'Image Generation';
+    if (map['categories'] is Map<String, dynamic>) {
+      category = (map['categories']['name'] ?? 'Image Generation') as String;
+    } else if (map['category'] != null) {
+      category = map['category'] as String;
+    }
+
+    // Extract tags if joined from Supabase 'prompt_tags' table
+    List<String> tags = [];
+    if (map['prompt_tags'] is List) {
+      tags = (map['prompt_tags'] as List)
+          .map((item) {
+            if (item is Map) {
+              if (item['tags'] is Map) {
+                return item['tags']['name']?.toString() ?? '';
+              }
+              return item['name']?.toString() ?? '';
+            }
+            return item.toString();
+          })
+          .where((t) => t.trim().isNotEmpty)
+          .toList();
+    } else if (map['tags'] is List) {
+      tags = (map['tags'] as List).map((e) => e.toString()).toList();
+    }
+
+    // Extract author name if joined from Supabase 'profiles' table
+    String authorName = 'Devit Nur Azaqi';
+    if (map['profiles'] is Map<String, dynamic>) {
+      authorName =
+          (map['profiles']['username'] ?? 'Devit Nur Azaqi') as String;
+    } else if (map['author_name'] != null) {
+      authorName = map['author_name'] as String;
+    } else if (map['author'] != null) {
+      authorName = map['author'] as String;
+    }
+
+    // Parse createdAt
+    DateTime? createdAt;
+    if (map['created_at'] is DateTime) {
+      createdAt = map['created_at'] as DateTime;
+    } else if (map['created_at'] is String) {
+      createdAt = DateTime.tryParse(map['created_at'] as String);
+    }
+
     return PromptModel(
       id: (map['id'] ?? '') as String,
       title: (map['title'] ?? '') as String,
       content: (map['content'] ?? '') as String,
-      category: (map['category'] ?? 'Image Generation') as String,
-      tags:
-          (map['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-          [],
+      category: category,
+      tags: tags,
       resultImageUrl: map['result_image_url'] as String?,
       isPublic: (map['is_public'] ?? true) as bool,
-      createdAt: map['created_at'] != null
-          ? DateTime.tryParse(map['created_at'] as String)
-          : null,
+      createdAt: createdAt,
       likes: (map['likes'] ?? 0) as int,
-      userId: map['user_id'] as String?,
-      authorName: map['author_name'] as String? ?? 'Devit Nur Azaqi',
+      userId: (map['owner_id'] ?? map['user_id']) as String?,
+      authorName: authorName,
     );
   }
 }

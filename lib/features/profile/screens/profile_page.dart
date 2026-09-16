@@ -1,16 +1,23 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brutal_button.dart';
+import '../../auth/providers/auth_provider.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState.user;
+    final email = user?.email ?? 'Unknown User';
+    final name = user?.userMetadata?['username'] as String? ?? 'User';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -71,7 +78,7 @@ class ProfilePage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Devit Nur Azaqi',
+                                name,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
@@ -80,7 +87,7 @@ class ProfilePage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '@devit.ai',
+                                email,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13,
                                   color: AppColors.muted,
@@ -188,15 +195,7 @@ class ProfilePage extends StatelessWidget {
                     variant: BrutalButtonVariant.secondary,
                     isFullWidth: true,
                     icon: Icons.logout,
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Signed out'),
-                          backgroundColor: AppColors.ink,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onPressed: () => _showLogoutConfirmationDialog(context, ref),
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -307,6 +306,121 @@ class ProfilePage extends StatelessWidget {
           ),
           const Icon(Icons.chevron_right, color: AppColors.ink, size: 20),
         ],
+      ),
+    );
+  }
+
+  void _showLogoutConfirmationDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _LogoutConfirmationDialog(
+        onConfirm: () {
+          Navigator.pop(ctx);
+          ref.read(authNotifierProvider.notifier).signOut();
+        },
+      ),
+    );
+  }
+}
+
+class _LogoutConfirmationDialog extends StatelessWidget {
+  final VoidCallback onConfirm;
+
+  const _LogoutConfirmationDialog({required this.onConfirm});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.ink, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.ink,
+              offset: Offset(4, 4),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.danger,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.ink, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.logout,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'SIGN OUT',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Are you sure you want to sign out?',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: AppColors.ink,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'You will need to sign in again to access your private prompts and account features.',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                color: AppColors.muted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: BrutalButton(
+                    text: 'Cancel',
+                    variant: BrutalButtonVariant.secondary,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: BrutalButton(
+                    text: 'Sign Out',
+                    variant: BrutalButtonVariant.destructive,
+                    onPressed: onConfirm,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

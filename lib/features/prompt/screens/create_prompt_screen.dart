@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -12,6 +14,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/brutal_input.dart';
 import '../models/prompt_model.dart';
+import '../providers/prompt_provider.dart';
 
 class CategoryItem {
   final String name;
@@ -25,26 +28,23 @@ class CategoryItem {
   });
 }
 
-class CreatePromptScreen extends StatefulWidget {
+class CreatePromptScreen extends ConsumerStatefulWidget {
   final PromptModel? initialPrompt;
 
-  const CreatePromptScreen({
-    super.key,
-    this.initialPrompt,
-  });
+  const CreatePromptScreen({super.key, this.initialPrompt});
 
   @override
-  State<CreatePromptScreen> createState() => _CreatePromptScreenState();
+  ConsumerState<CreatePromptScreen> createState() => _CreatePromptScreenState();
 }
 
-class _CreatePromptScreenState extends State<CreatePromptScreen> {
+class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
   late final TextEditingController _tagInputController;
 
-  final List<CategoryItem> _categories = const [
+  final List<CategoryItem> _categories = [
     CategoryItem(
       name: 'Image Generation',
       icon: Icons.image_outlined,
@@ -70,6 +70,11 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
       icon: Icons.campaign_outlined,
       color: AppColors.green,
     ),
+    CategoryItem(
+      name: 'Other',
+      icon: Icons.category_outlined,
+      color: Colors.grey.shade600,
+    ),
   ];
 
   late CategoryItem _selectedCategory;
@@ -85,21 +90,13 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
   void initState() {
     super.initState();
     final p = widget.initialPrompt;
-    _titleController = TextEditingController(
-      text: p?.title ?? 'Cinematic Coffee Photography',
-    );
-    _contentController = TextEditingController(
-      text: p?.content ??
-          'A cinematic product photography prompt for a premium coffee cup, with dramatic lighting, shallow depth of field, and a warm tone...',
-    );
+    _titleController = TextEditingController(text: p?.title ?? '');
+    _contentController = TextEditingController(text: p?.content ?? '');
     _tagInputController = TextEditingController();
 
-    _tags = p != null
-        ? List<String>.from(p.tags)
-        : ['coffee', 'cinematic', 'product'];
+    _tags = p != null ? List<String>.from(p.tags) : [];
 
-    _imageUrl = p?.resultImageUrl ??
-        'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=400&h=300';
+    _imageUrl = p?.resultImageUrl;
 
     _isPublic = p?.isPublic ?? true;
 
@@ -138,21 +135,35 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
     try {
       final picked = await _picker.pickImage(
         source: source,
-        maxWidth: 1080,
-        imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1920,
       );
-      if (picked != null) {
-        final bytes = await picked.readAsBytes();
+
+      if (picked == null) return;
+
+      // Baca bytes awal
+      final rawBytes = await picked.readAsBytes();
+
+      // Kompres ke WebP (aman untuk Android, iOS, dan Web)
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        rawBytes,
+        minWidth: 1080,
+        minHeight: 1080,
+        quality: 75, // Kualitas 70-80 adalah sweet spot
+        format: CompressFormat.webp,
+      );
+
+      if (mounted) {
         setState(() {
-          _imageBytes = bytes;
-          _imageUrl = null; // override URL with newly picked bytes
+          _imageBytes = compressedBytes;
+          _imageUrl = null;
         });
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick image: $e'),
+            content: Text('Couldn\'t add image: $e'),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -182,12 +193,15 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'SELECT IMAGE SOURCE',
+                  'Image source',
                   style: AppTypography.cardTitle.copyWith(fontSize: 14),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 ListTile(
-                  leading: const Icon(Icons.photo_library, color: AppColors.ink),
+                  leading: const Icon(
+                    Icons.photo_library,
+                    color: AppColors.ink,
+                  ),
                   title: Text('Gallery', style: AppTypography.bodyBold),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -214,7 +228,7 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 ListTile(
                   leading: const Icon(Icons.link, color: AppColors.ink),
-                  title: Text('Enter Image URL', style: AppTypography.bodyBold),
+                  title: Text('Image URL', style: AppTypography.bodyBold),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                     side: const BorderSide(color: AppColors.ink, width: 1.5),
@@ -227,14 +241,22 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                 if (_hasImage) ...[
                   const SizedBox(height: AppSpacing.sm),
                   ListTile(
-                    leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.danger,
+                    ),
                     title: Text(
-                      'Remove Image',
-                      style: AppTypography.bodyBold.copyWith(color: AppColors.danger),
+                      'Remove image',
+                      style: AppTypography.bodyBold.copyWith(
+                        color: AppColors.danger,
+                      ),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: AppColors.danger, width: 1.5),
+                      side: const BorderSide(
+                        color: AppColors.danger,
+                        width: 1.5,
+                      ),
                     ),
                     onTap: () {
                       Navigator.pop(ctx);
@@ -264,7 +286,7 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
             borderRadius: BorderRadius.circular(12),
             side: const BorderSide(color: AppColors.ink, width: 2),
           ),
-          title: Text('IMAGE URL', style: AppTypography.cardTitle),
+          title: Text('Image URL', style: AppTypography.cardTitle),
           content: TextField(
             controller: urlController,
             decoration: InputDecoration(
@@ -276,14 +298,20 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 2,
+                ),
               ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: AppTypography.button.copyWith(color: AppColors.muted)),
+              child: Text(
+                'Cancel',
+                style: AppTypography.button.copyWith(color: AppColors.muted),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -335,11 +363,15 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'SELECT CATEGORY',
+                      'Category',
                       style: AppTypography.cardTitle.copyWith(fontSize: 14),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20, color: AppColors.ink),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: AppColors.ink,
+                      ),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
@@ -363,7 +395,9 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                           vertical: AppSpacing.sm + 2,
                         ),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.yellow : AppColors.surface,
+                          color: isSelected
+                              ? AppColors.yellow
+                              : AppColors.surface,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: AppColors.ink,
@@ -387,9 +421,16 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                               decoration: BoxDecoration(
                                 color: cat.color,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: AppColors.ink, width: 1.5),
+                                border: Border.all(
+                                  color: AppColors.ink,
+                                  width: 1.5,
+                                ),
                               ),
-                              child: Icon(cat.icon, size: 16, color: Colors.white),
+                              child: Icon(
+                                cat.icon,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                             ),
                             const SizedBox(width: AppSpacing.md),
                             Expanded(
@@ -397,13 +438,19 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                                 cat.name,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
                                   color: AppColors.ink,
                                 ),
                               ),
                             ),
                             if (isSelected)
-                              const Icon(Icons.check_circle, color: AppColors.ink, size: 20),
+                              const Icon(
+                                Icons.check_circle,
+                                color: AppColors.ink,
+                                size: 20,
+                              ),
                           ],
                         ),
                       ),
@@ -418,7 +465,9 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
     );
   }
 
-  bool get _hasImage => _imageBytes != null || (_imageUrl != null && _imageUrl!.trim().isNotEmpty);
+  bool get _hasImage =>
+      _imageBytes != null ||
+      (_imageUrl != null && _imageUrl!.trim().isNotEmpty);
 
   void _handleSave() async {
     final title = _titleController.text.trim();
@@ -427,7 +476,7 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a title'),
+          content: Text('Add a title'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -437,7 +486,7 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
     if (content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter prompt content'),
+          content: Text('Add prompt content'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -448,35 +497,66 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
       _isSaving = true;
     });
 
-    // Simulate slight async persistence / validation
-    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      final PromptModel savedPrompt;
+      if (widget.initialPrompt == null) {
+        savedPrompt = await ref
+            .read(promptListNotifierProvider.notifier)
+            .createPrompt(
+              title: title,
+              content: content,
+              category: _selectedCategory.name,
+              tags: List<String>.from(_tags),
+              imageBytes: _imageBytes,
+              imageUrl: _imageUrl,
+              isPublic: _isPublic,
+            );
+      } else {
+        savedPrompt = await ref
+            .read(promptListNotifierProvider.notifier)
+            .updatePrompt(
+              id: widget.initialPrompt!.id,
+              title: title,
+              content: content,
+              category: _selectedCategory.name,
+              tags: List<String>.from(_tags),
+              newImageBytes: _imageBytes,
+              imageUrl: _imageBytes != null ? null : _imageUrl,
+              isPublic: _isPublic,
+            );
+      }
 
-    final newPrompt = PromptModel(
-      id: widget.initialPrompt?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
-      content: content,
-      category: _selectedCategory.name,
-      tags: List<String>.from(_tags),
-      resultImageUrl: _imageUrl,
-      isPublic: _isPublic,
-      createdAt: widget.initialPrompt?.createdAt ?? DateTime.now(),
-      likes: widget.initialPrompt?.likes ?? 0,
-    );
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
 
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-      });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Prompt saved'),
+            backgroundColor: AppColors.ink,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Prompt "${newPrompt.title}" saved successfully!'),
-          backgroundColor: AppColors.ink,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        Navigator.of(context).pop(savedPrompt);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
 
-      Navigator.of(context).pop(newPrompt);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Couldn\'t save prompt: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -507,7 +587,7 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                             label: 'Title',
                             isRequired: true,
                             controller: _titleController,
-                            hintText: 'Enter prompt title...',
+                            hintText: 'Enter title',
                           ),
                           const SizedBox(height: 20),
 
@@ -516,7 +596,7 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                             label: 'Content',
                             isRequired: true,
                             controller: _contentController,
-                            hintText: 'Enter prompt content details...',
+                            hintText: 'Type your prompt...',
                             minLines: 4,
                             maxLines: 6,
                           ),
@@ -758,7 +838,9 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
             style: AppTypography.body.copyWith(color: AppColors.ink),
             decoration: InputDecoration(
               hintText: 'Add a tag...',
-              hintStyle: AppTypography.body.copyWith(color: const Color(0xFF999999)),
+              hintStyle: AppTypography.body.copyWith(
+                color: const Color(0xFF999999),
+              ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg,
                 vertical: 14,
@@ -819,19 +901,22 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(6),
                             child: _imageBytes != null
-                                ? Image.memory(
-                                    _imageBytes!,
-                                    fit: BoxFit.cover,
-                                  )
+                                ? Image.memory(_imageBytes!, fit: BoxFit.cover)
                                 : CachedNetworkImage(
                                     imageUrl: _imageUrl!,
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => const Center(
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     ),
-                                    errorWidget: (context, url, error) => const Center(
-                                      child: Icon(Icons.broken_image, color: AppColors.muted),
-                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        const Center(
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            color: AppColors.muted,
+                                          ),
+                                        ),
                                   ),
                           ),
                         ),
@@ -946,7 +1031,9 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: !_isPublic ? AppColors.yellow : const Color(0xFFE8E8E8),
+                    color: !_isPublic
+                        ? AppColors.yellow
+                        : const Color(0xFFE8E8E8),
                     borderRadius: BorderRadius.circular(8),
                     border: !_isPublic
                         ? Border.all(color: AppColors.ink, width: 2)
@@ -964,17 +1051,15 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.lock_outline,
-                        size: 18,
-                        color: AppColors.ink,
-                      ),
+                      Icon(Icons.lock_outline, size: 18, color: AppColors.ink),
                       const SizedBox(width: 8),
                       Text(
                         'Private',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
-                          fontWeight: !_isPublic ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: !_isPublic
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                           color: AppColors.ink,
                         ),
                       ),
@@ -992,7 +1077,9 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: _isPublic ? AppColors.yellow : const Color(0xFFE8E8E8),
+                    color: _isPublic
+                        ? AppColors.yellow
+                        : const Color(0xFFE8E8E8),
                     borderRadius: BorderRadius.circular(8),
                     border: _isPublic
                         ? Border.all(color: AppColors.ink, width: 2)
@@ -1010,17 +1097,15 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.public,
-                        size: 18,
-                        color: AppColors.ink,
-                      ),
+                      Icon(Icons.public, size: 18, color: AppColors.ink),
                       const SizedBox(width: 8),
                       Text(
                         'Public',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
-                          fontWeight: _isPublic ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: _isPublic
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                           color: AppColors.ink,
                         ),
                       ),
@@ -1053,11 +1138,7 @@ class _CreatePromptScreenState extends State<CreatePromptScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          const Icon(
-            Icons.arrow_forward,
-            color: Colors.white,
-            size: 20,
-          ),
+          const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
         ],
       ),
     );

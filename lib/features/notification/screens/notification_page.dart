@@ -57,7 +57,8 @@ class _NotificationPageState extends State<NotificationPage> {
     const NotificationModel(
       id: 'notif-3',
       title: 'Prompt Saved',
-      description: 'natsuki saved your prompt "Anime Character" to their collection.',
+      description:
+          'natsuki saved your prompt "Anime Character" to their collection.',
       time: '1d ago',
       icon: Icons.bookmark,
       iconColor: AppColors.purple,
@@ -66,7 +67,8 @@ class _NotificationPageState extends State<NotificationPage> {
     const NotificationModel(
       id: 'notif-4',
       title: 'System Update',
-      description: 'PromptBox v1.0.0 is live with Neo-Brutalist theme and gallery view.',
+      description:
+          'PromptBox v1.0.0 is live with Neo-Brutalist theme and gallery view.',
       time: '3d ago',
       icon: Icons.rocket_launch,
       iconColor: Color(0xFF60A5FA),
@@ -80,7 +82,9 @@ class _NotificationPageState extends State<NotificationPage> {
     } else if (_selectedFilter == 'Likes') {
       return _notifications.where((n) => n.icon == Icons.favorite).toList();
     } else if (_selectedFilter == 'System') {
-      return _notifications.where((n) => n.icon == Icons.rocket_launch).toList();
+      return _notifications
+          .where((n) => n.icon == Icons.rocket_launch)
+          .toList();
     }
     return _notifications;
   }
@@ -144,7 +148,9 @@ class _NotificationPageState extends State<NotificationPage> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: isSelected ? AppColors.yellow : Colors.white,
+                              color: isSelected
+                                  ? AppColors.yellow
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: AppColors.ink,
@@ -191,7 +197,8 @@ class _NotificationPageState extends State<NotificationPage> {
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                           itemCount: list.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final item = list[index];
                             return Container(
@@ -201,7 +208,10 @@ class _NotificationPageState extends State<NotificationPage> {
                                     ? Colors.white
                                     : const Color(0xFFFFFDF0),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.ink, width: 2),
+                                border: Border.all(
+                                  color: AppColors.ink,
+                                  width: 2,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: AppColors.ink,
@@ -219,7 +229,9 @@ class _NotificationPageState extends State<NotificationPage> {
                                     width: 38,
                                     height: 38,
                                     decoration: BoxDecoration(
-                                      color: item.iconColor.withValues(alpha: 0.15),
+                                      color: item.iconColor.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
                                         color: AppColors.ink,
@@ -235,7 +247,8 @@ class _NotificationPageState extends State<NotificationPage> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           mainAxisAlignment:
@@ -243,18 +256,20 @@ class _NotificationPageState extends State<NotificationPage> {
                                           children: [
                                             Text(
                                               item.title,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.ink,
-                                              ),
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppColors.ink,
+                                                  ),
                                             ),
                                             Text(
                                               item.time,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 11,
-                                                color: AppColors.muted,
-                                              ),
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 11,
+                                                    color: AppColors.muted,
+                                                  ),
                                             ),
                                           ],
                                         ),
