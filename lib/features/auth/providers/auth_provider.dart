@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -98,41 +99,49 @@ class AuthNotifier extends Notifier<AuthViewState> {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
 
     try {
-      const webClientId =
-          '85174026732-qggffl1tvlvi9r7ag29ijiqk46jeppfe.apps.googleusercontent.com';
-
-      final googleSignIn = google.GoogleSignIn.instance;
-
-      // Initialize MUST be called exactly once
-      await googleSignIn.initialize(serverClientId: webClientId);
-
-      final googleUser = await googleSignIn.authenticate();
-
-      final googleAuth = googleUser.authentication;
-      final idToken = googleAuth.idToken;
-
-      if (idToken == null) {
-        state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: 'Google sign-in was interrupted. Please try again.',
+      if (kIsWeb) {
+        // Web flow using Supabase OAuth
+        await _supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: null,
         );
-        return;
+      } else {
+        // Native mobile flow using google_sign_in
+        const webClientId =
+            '85174026732-qggffl1tvlvi9r7ag29ijiqk46jeppfe.apps.googleusercontent.com';
+
+        final googleSignIn = google.GoogleSignIn.instance;
+
+        // Initialize MUST be called exactly once
+        await googleSignIn.initialize(serverClientId: webClientId);
+
+        final googleUser = await googleSignIn.authenticate();
+
+        final googleAuth = googleUser.authentication;
+        final idToken = googleAuth.idToken;
+
+        if (idToken == null) {
+          state = state.copyWith(
+            status: AuthStatus.error,
+            errorMessage: 'Google sign-in was interrupted. Please try again.',
+          );
+          return;
+        }
+
+        final response = await _supabase.auth.signInWithIdToken(
+          provider: OAuthProvider.google,
+          idToken: idToken,
+        );
+
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: response.user,
+        );
       }
-
-      final response = await _supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-      );
-
-      state = state.copyWith(
-        status: AuthStatus.authenticated,
-        user: response.user,
-      );
     } on google.GoogleSignInException {
       state = state.copyWith(
         status: AuthStatus.error,
-        errorMessage:
-            'Google sign-in was cancelled or could not complete. Please try again.',
+        errorMessage: 'Google sign-in was cancelled or could not complete. Please try again.',
       );
     } on AuthException catch (e) {
       state = state.copyWith(

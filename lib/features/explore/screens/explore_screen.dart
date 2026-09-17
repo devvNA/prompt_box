@@ -14,10 +14,7 @@ import '../providers/explore_provider.dart';
 class ExploreScreen extends ConsumerStatefulWidget {
   final bool showBottomNav;
 
-  const ExploreScreen({
-    super.key,
-    this.showBottomNav = true,
-  });
+  const ExploreScreen({super.key, this.showBottomNav = true});
 
   @override
   ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
@@ -88,64 +85,82 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20, color: AppColors.ink),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: AppColors.ink,
+                      ),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                ListTile(
-                  leading: const Icon(Icons.favorite, color: AppColors.primary),
-                  title: Text(
-                    'Most Popular (Likes)',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.favorite,
+                      color: AppColors.primary,
                     ),
-                  ),
-                  trailing: _sortBy == 'likes'
-                      ? const Icon(Icons.check_circle, color: AppColors.ink)
-                      : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(
-                      color: _sortBy == 'likes'
-                          ? AppColors.ink
-                          : AppColors.borderMuted,
-                      width: 1.5,
+                    title: Text(
+                      'Most Popular (Likes)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
                     ),
+                    trailing: _sortBy == 'likes'
+                        ? const Icon(Icons.check_circle, color: AppColors.ink)
+                        : null,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: _sortBy == 'likes'
+                            ? AppColors.ink
+                            : AppColors.borderMuted,
+                        width: 1.5,
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() => _sortBy = 'likes');
+                      Navigator.pop(ctx);
+                    },
                   ),
-                  onTap: () {
-                    setState(() => _sortBy = 'likes');
-                    Navigator.pop(ctx);
-                  },
                 ),
                 const SizedBox(height: 8),
-                ListTile(
-                  leading: const Icon(Icons.access_time, color: AppColors.ink),
-                  title: Text(
-                    'Most Recent',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
+                Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.access_time,
                       color: AppColors.ink,
                     ),
-                  ),
-                  trailing: _sortBy == 'recent'
-                      ? const Icon(Icons.check_circle, color: AppColors.ink)
-                      : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(
-                      color: _sortBy == 'recent'
-                          ? AppColors.ink
-                          : AppColors.borderMuted,
-                      width: 1.5,
+                    title: Text(
+                      'Most Recent',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
                     ),
+                    trailing: _sortBy == 'recent'
+                        ? const Icon(Icons.check_circle, color: AppColors.ink)
+                        : null,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: _sortBy == 'recent'
+                            ? AppColors.ink
+                            : AppColors.borderMuted,
+                        width: 1.5,
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() => _sortBy = 'recent');
+                      Navigator.pop(ctx);
+                    },
                   ),
-                  onTap: () {
-                    setState(() => _sortBy = 'recent');
-                    Navigator.pop(ctx);
-                  },
                 ),
               ],
             ),
@@ -471,8 +486,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     if (_sortBy == 'likes') {
       list.sort((a, b) => b.likes.compareTo(a.likes));
     } else {
-      list.sort((a, b) => (b.createdAt ?? DateTime(2000))
-          .compareTo(a.createdAt ?? DateTime(2000)));
+      list.sort(
+        (a, b) => (b.createdAt ?? DateTime(2000)).compareTo(
+          a.createdAt ?? DateTime(2000),
+        ),
+      );
     }
 
     if (list.isEmpty) {
@@ -711,11 +729,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             height: 20,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.ink, width: 1),
+                              border: Border.all(
+                                color: AppColors.ink,
+                                width: 1,
+                              ),
                               image: DecorationImage(
                                 image: CachedNetworkImageProvider(
-                                  item.authorAvatar ??
-                                      'https://hfjdvymiaipelonyyrsd.supabase.co/storage/v1/object/public/avatar/8e40f83a0f6b6f2e66803af56507b05d.jpg',
+                                  item.authorAvatar ?? 'https://hfjdvymiaipelonyyrsd.supabase.co/storage/v1/object/public/avatar/8e40f83a0f6b6f2e66803af56507b05d.jpg',
                                 ),
                                 fit: BoxFit.cover,
                               ),

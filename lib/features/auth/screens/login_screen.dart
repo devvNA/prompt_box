@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,7 +53,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final prefs = await SharedPreferences.getInstance();
       final remember = prefs.getBool('remember_me') ?? false;
       if (remember) {
-        final savedEmail = prefs.getString('saved_email') ?? '';
+        const secureStorage = FlutterSecureStorage();
+        final savedEmail = await secureStorage.read(key: 'saved_email') ?? '';
         if (mounted) {
           setState(() {
             _rememberMe = true;
@@ -68,12 +70,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _saveRememberMe(String email) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      const secureStorage = FlutterSecureStorage();
       if (_rememberMe) {
         await prefs.setBool('remember_me', true);
-        await prefs.setString('saved_email', email);
+        await secureStorage.write(key: 'saved_email', value: email);
       } else {
         await prefs.setBool('remember_me', false);
-        await prefs.remove('saved_email');
+        await secureStorage.delete(key: 'saved_email');
       }
     } catch (_) {}
   }
@@ -83,10 +86,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _rememberMe = value ?? !_rememberMe;
     });
     if (!_rememberMe) {
-      SharedPreferences.getInstance().then((prefs) {
-        prefs.setBool('remember_me', false);
-        prefs.remove('saved_email');
-      }).catchError((_) {});
+      SharedPreferences.getInstance()
+          .then((prefs) {
+            prefs.setBool('remember_me', false);
+          })
+          .catchError((_) {});
+      const FlutterSecureStorage()
+          .delete(key: 'saved_email')
+          .catchError((_) {});
     }
   }
 

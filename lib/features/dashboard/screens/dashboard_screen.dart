@@ -5,11 +5,15 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/brutal_button.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../explore/screens/explore_screen.dart';
 import '../../prompt/models/prompt_model.dart';
 import '../../prompt/providers/prompt_provider.dart';
 import '../../prompt/screens/create_prompt_screen.dart';
-import '../../prompt/screens/prompt_detail_screen.dart';
+import '../providers/dashboard_filter_provider.dart';
+import '../widgets/filter_modal.dart';
+import '../widgets/prompt_card.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   final bool showBottomNav;
@@ -21,8 +25,19 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final TextEditingController _searchController = TextEditingController();
   final List<String> categories = ['All', 'Image', 'Text', 'Design', 'Code'];
-  String selectedCategory = 'All';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _resetAllFilters() {
+    _searchController.clear();
+    ref.read(dashboardFilterProvider.notifier).resetAll();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +53,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 _buildHeader(),
                 _buildSearchBar(),
                 _buildCategories(),
+                _buildActiveFilterChips(),
                 Expanded(child: _buildGrid(promptsAsync)),
               ],
             ),
@@ -118,6 +134,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildSearchBar() {
+    final filterState = ref.watch(dashboardFilterProvider);
+    final hasActive = filterState.hasActiveFilters;
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.pagePadding,
@@ -143,45 +162,101 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: AppColors.muted),
+                  const Icon(Icons.search, color: AppColors.ink, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) {
+                        ref.read(dashboardFilterProvider.notifier).updateSearchQuery(val.trim());
+                      },
                       decoration: InputDecoration(
                         hintText: 'Search prompts...',
                         hintStyle: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w600,
                           color: AppColors.muted,
+                          fontSize: 14,
                         ),
                         border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
                       ),
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w600,
                         color: AppColors.ink,
+                        fontSize: 14,
                       ),
                     ),
                   ),
+                  if (filterState.searchQuery.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        ref.read(dashboardFilterProvider.notifier).clearSearch();
+                      },
+                      child: const Icon(
+                        Icons.close,
+                        color: AppColors.ink,
+                        size: 20,
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.ink, width: 2),
-              boxShadow: const [
-                BoxShadow(
-                  color: AppColors.ink,
-                  offset: Offset(2, 2),
-                  blurRadius: 0,
+          GestureDetector(
+            onTap: () => _showFilterModal(),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: hasActive ? AppColors.yellow : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.ink, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.ink,
+                        offset: Offset(2, 2),
+                        blurRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.tune, color: AppColors.ink, size: 22),
                 ),
+                if (hasActive)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.ink, width: 1.5),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${filterState.activeFilterCount}',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
-            child: const Icon(Icons.tune, color: AppColors.ink),
           ),
         ],
       ),
@@ -189,6 +264,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildCategories() {
+    final selectedCategory = ref.watch(dashboardFilterProvider).selectedCategory;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
@@ -202,9 +278,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
               onTap: () {
-                setState(() {
-                  selectedCategory = cat;
-                });
+                ref.read(dashboardFilterProvider.notifier).updateCategory(cat);
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -240,35 +314,159 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  Widget _buildActiveFilterChips() {
+    final filterState = ref.watch(dashboardFilterProvider);
+    if (!filterState.hasActiveFilters) return const SizedBox.shrink();
+
+    return Container(
+      height: 32,
+      margin: const EdgeInsets.only(bottom: 6),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+        children: [
+          if (filterState.sortBy != 'newest')
+            _buildActiveChip(
+              label: 'Sort: ${filterState.sortBy == 'likes' ? 'Popular' : filterState.sortBy == 'oldest' ? 'Oldest' : 'A-Z'}',
+              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeSort(),
+            ),
+          if (filterState.filterType != 'all')
+            _buildActiveChip(
+              label: filterState.filterType == 'image' ? 'With Image' : 'Text Only',
+              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeTypeFilter(),
+            ),
+          if (filterState.filterVisibility != 'all')
+            _buildActiveChip(
+              label: filterState.filterVisibility == 'public' ? 'Public' : 'Private',
+              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeVisibilityFilter(),
+            ),
+          if (filterState.selectedTag != null)
+            _buildActiveChip(
+              label: '#${filterState.selectedTag}',
+              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeTagFilter(),
+            ),
+          GestureDetector(
+            onTap: () {
+              ref.read(dashboardFilterProvider.notifier).resetAll();
+              _searchController.clear();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              child: Text(
+                'Clear all',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.danger,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveChip({
+    required String label,
+    required VoidCallback onRemove,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE5E7EB),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.ink, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close, size: 13, color: AppColors.ink),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFilterModal() {
+    final allPrompts = ref.read(promptListNotifierProvider).asData?.value ?? [];
+    final availableTags = allPrompts
+        .expand((p) => p.tags)
+        .map((t) => t.trim().replaceAll('#', ''))
+        .where((t) => t.isNotEmpty)
+        .toSet()
+        .toList();
+    availableTags.sort();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return FilterModal(
+          availableTags: availableTags,
+          initialState: ref.read(dashboardFilterProvider),
+          onApply: ({
+            required filterType,
+            required filterVisibility,
+            required selectedTag,
+            required sortBy,
+          }) {
+            ref.read(dashboardFilterProvider.notifier).updateFilters(
+                  type: filterType,
+                  visibility: filterVisibility,
+                  sortBy: sortBy,
+                  tag: selectedTag,
+                );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildGrid(AsyncValue<List<PromptModel>> promptsAsync) {
     return promptsAsync.when(
       data: (prompts) {
-        final filtered = selectedCategory == 'All'
-            ? prompts
-            : prompts.where((p) {
-                if (selectedCategory == 'Image') {
-                  return p.category == 'Image Generation';
-                }
-                if (selectedCategory == 'Text') {
-                  return p.category == 'Text Generation';
-                }
-                if (selectedCategory == 'Design') {
-                  return p.category == 'UI/UX Design';
-                }
-                if (selectedCategory == 'Code') {
-                  return p.category == 'Code Assistant';
-                }
-                return p.category == selectedCategory;
-              }).toList();
+        final filtered = ref.read(dashboardFilterProvider.notifier).applyFilters(prompts);
 
         if (filtered.isEmpty) {
-          return Center(
-            child: Text(
-              'No prompts found.',
-              style: GoogleFonts.plusJakartaSans(
-                color: AppColors.muted,
-                fontWeight: FontWeight.w600,
+          final filterState = ref.read(dashboardFilterProvider);
+          if (filterState.searchQuery.isNotEmpty || 
+              filterState.selectedCategory != 'All' || 
+              filterState.hasActiveFilters) {
+            return Center(
+              child: EmptyState(
+                title: 'No Matching Prompts',
+                description: 'No prompts match your active search or filter criteria.',
+                buttonText: 'Reset Filters',
+                onButtonPressed: _resetAllFilters,
               ),
+            );
+          }
+
+          return Center(
+            child: EmptyState(
+              title: 'No Prompts Yet',
+              description: 'Start building your prompt library by creating your first prompt.',
+              buttonText: 'Create Prompt',
+              onButtonPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CreatePromptScreen()),
+                );
+              },
             ),
           );
         }
@@ -277,13 +475,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           onRefresh: () =>
               ref.read(promptListNotifierProvider.notifier).refresh(),
           color: AppColors.ink,
+          backgroundColor: AppColors.yellow,
           child: GridView.builder(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.pagePadding,
               8,
               AppSpacing.pagePadding,
               100,
-            ), // Bottom padding for FAB and Nav
+            ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 12,
@@ -292,7 +491,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
-              return _buildCard(filtered[index]);
+              return PromptCard(
+                prompt: filtered[index],
+                onUpdate: () => ref.read(promptListNotifierProvider.notifier).refresh(),
+                onDelete: () => ref.read(promptListNotifierProvider.notifier).refresh(),
+              );
             },
           ),
         );
@@ -300,262 +503,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       loading: () =>
           const Center(child: CircularProgressIndicator(color: AppColors.ink)),
       error: (err, stack) => Center(
-        child: Text(
-          'Error loading prompts: $err',
-          style: GoogleFonts.plusJakartaSans(color: AppColors.danger),
-        ),
-      ),
-    );
-  }
-
-  void _openDetail(PromptModel prompt) async {
-    final result = await Navigator.of(context).push<PromptDetailResult>(
-      MaterialPageRoute(builder: (_) => PromptDetailScreen(prompt: prompt)),
-    );
-
-    if (result != null && mounted) {
-      if (result.action == 'delete') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Prompt deleted'),
-            backgroundColor: AppColors.ink,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else if (result.action == 'update' && result.prompt != null) {
-        ref
-            .read(promptListNotifierProvider.notifier)
-            .updatePromptInMemory(result.prompt!);
-      }
-    }
-  }
-
-  Widget _buildCard(PromptModel item) {
-    final isImage = item.hasImage;
-
-    return GestureDetector(
-      onTap: () => _openDetail(item),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.ink, width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.ink,
-              offset: Offset(3, 3),
-              blurRadius: 0,
-            ),
-          ],
-        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Image / Abstract Graphic area
-            Expanded(
-              flex: 4,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isImage ? AppColors.borderMuted : AppColors.yellow,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(14),
-                        topRight: Radius.circular(14),
-                      ),
-                    ),
-                    child: isImage
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(14),
-                              topRight: Radius.circular(14),
-                            ),
-                            child: CachedNetworkImage(
-                              imageUrl: item.resultImageUrl!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : _buildAbstractShapes(),
-                  ),
-                  // Badge Overlapping
-                  Positioned(
-                    bottom: -10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isImage
-                            ? AppColors.green
-                            : const Color(0xFF60A5FA), // tag-blue
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.ink, width: 2),
-                      ),
-                      child: Text(
-                        isImage ? 'IMAGE' : 'TXT',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.ink,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            const Icon(Icons.error_outline, color: AppColors.danger, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              'Error loading prompts',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
               ),
             ),
-
-            // Content Area
-            Expanded(
-              flex: 5,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.ink,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-                    // Tags
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: item.tags.take(3).map((tag) {
-                        final displayTag = tag.startsWith('#') ? tag : '#$tag';
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3F4F6),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            displayTag,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF4B5563),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 8),
-                    // Footer (Likes & Options)
-                    Container(
-                      padding: const EdgeInsets.only(top: 8),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: Color(0xFFF3F4F6)),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.favorite_border,
-                                size: 14,
-                                color: AppColors.ink,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${item.likes}',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.ink,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Icon(
-                            Icons.more_horiz,
-                            size: 16,
-                            color: AppColors.ink,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 16),
+            BrutalButton(
+              text: 'Retry',
+              onPressed: () =>
+                  ref.read(promptListNotifierProvider.notifier).refresh(),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildAbstractShapes() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Positioned(
-          top: 10,
-          left: 15,
-          child: Transform.rotate(
-            angle: -0.2,
-            child: Container(
-              width: 30,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF60A5FA),
-                border: Border.all(color: AppColors.ink, width: 2),
-                boxShadow: const [
-                  BoxShadow(color: AppColors.ink, offset: Offset(2, 2)),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 20,
-          right: 25,
-          child: Transform.rotate(
-            angle: 0.8,
-            child: Container(
-              width: 15,
-              height: 30,
-              decoration: BoxDecoration(
-                color: AppColors.ink,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 10,
-          left: 20,
-          child: Transform.rotate(
-            angle: 0.8,
-            child: Container(
-              width: 35,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: AppColors.ink, width: 2),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

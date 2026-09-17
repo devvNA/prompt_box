@@ -7,8 +7,8 @@ Mobile prompt manager app — gallery UI for organizing, categorizing, and shari
 - `flutter run` — run on connected device/emulator
 - `flutter run -d chrome` — run on Chrome (web debug)
 - `flutter analyze` — static analysis (uses `analysis_options.yaml` with `flutter_lints`)
-- `flutter test` — run all unit/widget tests
-- `flutter test test/<file>_test.dart` — run a single test file
+<!-- - `flutter test` — run all unit/widget tests
+- `flutter test test/<file>_test.dart` — run a single test file -->
 - `flutter build apk --release` — release APK build
 - `flutter pub get` — install dependencies after editing `pubspec.yaml`
 
@@ -20,7 +20,7 @@ Mobile prompt manager app — gallery UI for organizing, categorizing, and shari
 - **Conditional image rendering is a layout trap** → detail page: if `result_image_url` is null, do not render any image section or empty placeholder; content shifts up. Card grid: use a neutral visual placeholder (category color or icon), never an empty image container. Test both variants (with image, without image) to catch layout glitches.
 - **`cached_network_image` required for grid performance** → the dashboard loads many image thumbnails simultaneously. Always use `CachedNetworkImage` with `BoxFit.cover` on card thumbnails. Without it, scroll lag on image-heavy grids.
 - **Image upload max 1080px width, quality 80%** → compress/resize on client before uploading to Supabase Storage. Unbounded uploads fill the bucket and cause slow loads.
-- **Auth is email/password only (MVP)** → do not implement social login (Google/Apple). Social login buttons in the UI are visual placeholders only.
+- **Auth is email/password + Google Sign-In** → Apple sign-in button in the UI is a visual placeholder only. Google Sign-In uses Supabase native OAuth flow (`signInWithOAuth`). Deep link scheme: `io.supabase.promptbox://login-callback`.
 - **RLS must be active on all tables** → private prompts: owner-only access. Public prompts: `SELECT`-only for non-owner. Every new table or migration must include RLS policies. Never disable RLS "temporarily."
 
 ## Conventions
