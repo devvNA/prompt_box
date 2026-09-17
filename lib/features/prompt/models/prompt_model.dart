@@ -10,6 +10,9 @@ class PromptModel {
   final int likes;
   final String? userId;
   final String? authorName;
+  final String? authorAvatar;
+  final bool isLiked;
+  final bool isBookmarked;
 
   const PromptModel({
     required this.id,
@@ -23,6 +26,9 @@ class PromptModel {
     this.likes = 0,
     this.userId,
     this.authorName,
+    this.authorAvatar,
+    this.isLiked = false,
+    this.isBookmarked = false,
   });
 
   bool get hasImage =>
@@ -40,6 +46,9 @@ class PromptModel {
     int? likes,
     String? userId,
     String? authorName,
+    String? authorAvatar,
+    bool? isLiked,
+    bool? isBookmarked,
   }) {
     return PromptModel(
       id: id ?? this.id,
@@ -53,6 +62,9 @@ class PromptModel {
       likes: likes ?? this.likes,
       userId: userId ?? this.userId,
       authorName: authorName ?? this.authorName,
+      authorAvatar: authorAvatar ?? this.authorAvatar,
+      isLiked: isLiked ?? this.isLiked,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
     );
   }
 
@@ -69,6 +81,9 @@ class PromptModel {
       'likes': likes,
       'user_id': userId,
       'author_name': authorName,
+      'author_avatar': authorAvatar,
+      'is_liked': isLiked,
+      'is_bookmarked': isBookmarked,
     };
   }
 
@@ -100,15 +115,22 @@ class PromptModel {
       tags = (map['tags'] as List).map((e) => e.toString()).toList();
     }
 
-    // Extract author name if joined from Supabase 'profiles' table
+    // Extract author name & avatar if joined from Supabase 'profiles' table
     String authorName = 'Devit Nur Azaqi';
+    String? authorAvatar;
     if (map['profiles'] is Map<String, dynamic>) {
       authorName =
           (map['profiles']['username'] ?? 'Devit Nur Azaqi') as String;
-    } else if (map['author_name'] != null) {
-      authorName = map['author_name'] as String;
-    } else if (map['author'] != null) {
-      authorName = map['author'] as String;
+      authorAvatar = map['profiles']['avatar_url'] as String?;
+    } else {
+      if (map['author_name'] != null) {
+        authorName = map['author_name'] as String;
+      } else if (map['author'] != null) {
+        authorName = map['author'] as String;
+      }
+      if (map['author_avatar'] != null) {
+        authorAvatar = map['author_avatar'] as String?;
+      }
     }
 
     // Parse createdAt
@@ -117,6 +139,30 @@ class PromptModel {
       createdAt = map['created_at'] as DateTime;
     } else if (map['created_at'] is String) {
       createdAt = DateTime.tryParse(map['created_at'] as String);
+    }
+
+    // Parse likes count
+    int likesCount = 0;
+    if (map['likes'] is int) {
+      likesCount = map['likes'] as int;
+    } else if (map['likes'] is List && (map['likes'] as List).isNotEmpty) {
+      final first = (map['likes'] as List).first;
+      if (first is Map && first['count'] != null) {
+        likesCount = (first['count'] as num).toInt();
+      }
+    } else if (map['likes_count'] is num) {
+      likesCount = (map['likes_count'] as num).toInt();
+    }
+
+    bool isLiked = false;
+    if (map['is_liked'] is bool) {
+      isLiked = map['is_liked'] as bool;
+    }
+
+    // Parse is_bookmarked
+    bool isBookmarked = false;
+    if (map['is_bookmarked'] is bool) {
+      isBookmarked = map['is_bookmarked'] as bool;
     }
 
     return PromptModel(
@@ -128,9 +174,12 @@ class PromptModel {
       resultImageUrl: map['result_image_url'] as String?,
       isPublic: (map['is_public'] ?? true) as bool,
       createdAt: createdAt,
-      likes: (map['likes'] ?? 0) as int,
+      likes: likesCount,
       userId: (map['owner_id'] ?? map['user_id']) as String?,
       authorName: authorName,
+      authorAvatar: authorAvatar,
+      isLiked: isLiked,
+      isBookmarked: isBookmarked,
     );
   }
 }

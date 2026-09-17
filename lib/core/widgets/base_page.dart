@@ -4,8 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/explore/screens/explore_screen.dart';
-import '../../features/notification/screens/notification_page.dart';
-import '../../features/profile/screens/profile_page.dart';
+import '../../features/profile/screens/profile_screen.dart';
 import '../theme/app_colors.dart';
 
 /// Data class representing a tab item in BasePage
@@ -105,17 +104,17 @@ class BasePageState extends ConsumerState<BasePage> {
         activeIcon: Icons.search,
         page: ExplorePage(),
       ),
-      BaseTabItem(
-        label: 'Notifications',
-        icon: Icons.notifications_none_outlined,
-        activeIcon: Icons.notifications,
-        page: NotificationPage(),
-      ),
+      // BaseTabItem(
+      //   label: 'Notifications',
+      //   icon: Icons.notifications_none_outlined,
+      //   activeIcon: Icons.notifications,
+      //   page: NotificationScreen(),
+      // ),
       BaseTabItem(
         label: 'Profile',
         icon: Icons.person_outline,
         activeIcon: Icons.person,
-        page: ProfilePage(),
+        page: ProfileScreen(),
       ),
     ];
   }

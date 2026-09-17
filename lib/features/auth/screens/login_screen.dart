@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
+import '../../../core/widgets/brutal_checkbox.dart';
 import '../models/auth_state.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_text_field.dart';
@@ -31,6 +33,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   late AuthMode _currentMode;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -41,6 +44,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _currentMode = widget.initialMode;
+    _loadSavedEmail();
+  }
+
+  Future<void> _loadSavedEmail() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final remember = prefs.getBool('remember_me') ?? false;
+      if (remember) {
+        final savedEmail = prefs.getString('saved_email') ?? '';
+        if (mounted) {
+          setState(() {
+            _rememberMe = true;
+            if (savedEmail.isNotEmpty && _emailController.text.isEmpty) {
+              _emailController.text = savedEmail;
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveRememberMe(String email) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setBool('remember_me', true);
+        await prefs.setString('saved_email', email);
+      } else {
+        await prefs.setBool('remember_me', false);
+        await prefs.remove('saved_email');
+      }
+    } catch (_) {}
+  }
+
+  void _toggleRememberMe(bool? value) {
+    setState(() {
+      _rememberMe = value ?? !_rememberMe;
+    });
+    if (!_rememberMe) {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setBool('remember_me', false);
+        prefs.remove('saved_email');
+      }).catchError((_) {});
+    }
   }
 
   @override
@@ -118,6 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final password = _passwordController.text;
 
     if (_isSignIn) {
+      _saveRememberMe(email);
       if (widget.onSignIn != null) {
         widget.onSignIn!(email, password);
       } else {
@@ -416,22 +464,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             },
           ),
 
-          // Forgot Password Link (Sign In Only)
+          // Remember Me & Forgot Password Row (Sign In Only)
           if (_isSignIn) ...[
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: () => _showToast('Password reset is coming soon.'),
-                child: Text(
-                  'Forgot password?',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF2D5682),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                BrutalCheckbox(
+                  value: _rememberMe,
+                  onChanged: _toggleRememberMe,
+                  label: 'Remember me',
+                ),
+                GestureDetector(
+                  onTap: () => _showToast('Password reset is coming soon.'),
+                  child: Text(
+                    'Forgot password?',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2D5682),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
 

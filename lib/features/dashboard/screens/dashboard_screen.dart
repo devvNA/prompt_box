@@ -106,7 +106,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               border: Border.all(color: AppColors.ink, width: 2),
               image: const DecorationImage(
                 image: CachedNetworkImageProvider(
-                  'https://i.pravatar.cc/100?img=11',
+                  'https://hfjdvymiaipelonyyrsd.supabase.co/storage/v1/object/public/avatar/8e40f83a0f6b6f2e66803af56507b05d.jpg',
                 ),
                 fit: BoxFit.cover,
               ),
@@ -246,14 +246,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final filtered = selectedCategory == 'All'
             ? prompts
             : prompts.where((p) {
-                if (selectedCategory == 'Image')
+                if (selectedCategory == 'Image') {
                   return p.category == 'Image Generation';
-                if (selectedCategory == 'Text')
+                }
+                if (selectedCategory == 'Text') {
                   return p.category == 'Text Generation';
-                if (selectedCategory == 'Design')
+                }
+                if (selectedCategory == 'Design') {
                   return p.category == 'UI/UX Design';
-                if (selectedCategory == 'Code')
+                }
+                if (selectedCategory == 'Code') {
                   return p.category == 'Code Assistant';
+                }
                 return p.category == selectedCategory;
               }).toList();
 
@@ -318,6 +322,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+      } else if (result.action == 'update' && result.prompt != null) {
+        ref
+            .read(promptListNotifierProvider.notifier)
+            .updatePromptInMemory(result.prompt!);
       }
     }
   }

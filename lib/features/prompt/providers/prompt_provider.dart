@@ -86,6 +86,16 @@ class PromptListNotifier extends AsyncNotifier<List<PromptModel>> {
     state = AsyncData(current.where((p) => p.id != id).toList());
   }
 
+  /// Updates an existing prompt in local state directly without re-saving.
+  void updatePromptInMemory(PromptModel updatedPrompt) {
+    final current = state.value ?? [];
+    state = AsyncData(
+      current
+          .map((p) => p.id == updatedPrompt.id ? updatedPrompt : p)
+          .toList(),
+    );
+  }
+
   /// Refreshes the user's prompt list from Supabase.
   Future<void> refresh() async {
     state = const AsyncLoading();

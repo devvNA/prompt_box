@@ -262,4 +262,156 @@ class PromptRepository {
     if (row == null) return null;
     return PromptModel.fromMap(row);
   }
+
+  /// Fetches all public prompts shared by the community.
+  Future<List<PromptModel>> getPublicPrompts() async {
+    final rows = await _supabase
+        .from(AppConstants.tablePrompts)
+        .select(
+          '*, categories(name, color), prompt_tags(tags(name)), profiles(username, avatar_url), likes(count)',
+        )
+        .eq('is_public', true)
+        .order('created_at', ascending: false);
+
+    final user = _supabase.auth.currentUser;
+    Set<String> likedIds = {};
+    Set<String> bookmarkedIds = {};
+    if (user != null) {
+      try {
+        final likedRows = await _supabase
+            .from('likes')
+            .select('prompt_id')
+            .eq('user_id', user.id);
+        likedIds = (likedRows as List)
+            .map((r) => r['prompt_id'] as String)
+            .toSet();
+
+        final bookmarkedRows = await _supabase
+            .from('bookmarks')
+            .select('prompt_id')
+            .eq('user_id', user.id);
+        bookmarkedIds = (bookmarkedRows as List)
+            .map((r) => r['prompt_id'] as String)
+            .toSet();
+      } catch (_) {}
+    }
+
+    return (rows as List).map((r) {
+      final map = r as Map<String, dynamic>;
+      final prompt = PromptModel.fromMap(map);
+      return prompt.copyWith(
+        isLiked: likedIds.contains(prompt.id),
+        isBookmarked: bookmarkedIds.contains(prompt.id),
+      );
+    }).toList();
+  }
+
+  /// Toggles like on a prompt using Supabase RPC toggle_like.
+  /// Returns a map with {'is_liked': bool, 'like_count': int}.
+  Future<Map<String, dynamic>> toggleLike(String promptId) async {
+    final response = await _supabase.rpc(
+      'toggle_like',
+      params: {'target_prompt_id': promptId},
+    );
+
+    if (response is Map<String, dynamic>) {
+      return response;
+    } else if (response is Map) {
+      return Map<String, dynamic>.from(response);
+    }
+    return {'is_liked': false, 'like_count': 0};
+  }
+
+  /// Records a view for a prompt using Supabase RPC record_prompt_view.
+  Future<void> recordView(String promptId) async {
+    try {
+      await _supabase.rpc(
+        'record_prompt_view',
+        params: {'target_prompt_id': promptId},
+      );
+    } catch (_) {}
+  }
+
+  /// Checks if the currently authenticated user has liked a specific prompt.
+  Future<bool> checkIfLiked(String promptId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final existing = await _supabase
+          .from('likes')
+          .select('prompt_id')
+          .eq('user_id', user.id)
+          .eq('prompt_id', promptId)
+          .maybeSingle();
+      return existing != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Toggles bookmark on a prompt using Supabase RPC toggle_bookmark.
+  /// Returns a boolean indicating if it is now bookmarked.
+  Future<bool> toggleBookmark(String promptId) async {
+    final response = await _supabase.rpc(
+      'toggle_bookmark',
+      params: {'target_prompt_id': promptId},
+    );
+    if (response is bool) {
+      return response;
+    }
+    return false;
+  }
+
+  /// Checks if the currently authenticated user has bookmarked a specific prompt.
+  Future<bool> checkIfBookmarked(String promptId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final existing = await _supabase
+          .from('bookmarks')
+          .select('prompt_id')
+          .eq('user_id', user.id)
+          .eq('prompt_id', promptId)
+          .maybeSingle();
+      return existing != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Fetches all prompts bookmarked by the currently authenticated user.
+  Future<List<PromptModel>> getBookmarkedPrompts() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return [];
+
+    try {
+      final rows = await _supabase.rpc('get_bookmarked_prompts').select(
+        '*, categories(name, color), prompt_tags(tags(name)), profiles(username, avatar_url), likes(count)',
+      );
+
+      Set<String> likedIds = {};
+      try {
+        final likedRows = await _supabase
+            .from('likes')
+            .select('prompt_id')
+            .eq('user_id', user.id);
+        likedIds = (likedRows as List)
+            .map((r) => r['prompt_id'] as String)
+            .toSet();
+      } catch (_) {}
+
+      return (rows as List).map((r) {
+        final map = r as Map<String, dynamic>;
+        final prompt = PromptModel.fromMap(map);
+        return prompt.copyWith(
+          isLiked: likedIds.contains(prompt.id),
+          isBookmarked: true,
+        );
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
 }

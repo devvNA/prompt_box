@@ -30,8 +30,13 @@ class CategoryItem {
 
 class CreatePromptScreen extends ConsumerStatefulWidget {
   final PromptModel? initialPrompt;
+  final bool isRemix;
 
-  const CreatePromptScreen({super.key, this.initialPrompt});
+  const CreatePromptScreen({
+    super.key,
+    this.initialPrompt,
+    this.isRemix = false,
+  });
 
   @override
   ConsumerState<CreatePromptScreen> createState() => _CreatePromptScreenState();
@@ -499,7 +504,7 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
 
     try {
       final PromptModel savedPrompt;
-      if (widget.initialPrompt == null) {
+      if (widget.initialPrompt == null || widget.isRemix) {
         savedPrompt = await ref
             .read(promptListNotifierProvider.notifier)
             .createPrompt(
@@ -660,7 +665,11 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
           // Title
           Expanded(
             child: Text(
-              'Create New Prompt',
+              widget.isRemix
+                  ? 'Remix Prompt'
+                  : (widget.initialPrompt != null
+                      ? 'Edit Prompt'
+                      : 'Create New Prompt'),
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
