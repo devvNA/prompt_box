@@ -106445,7 +106445,7 @@ $S:0}
 A.WW.prototype={
 J(a){var s=null,r=$.aY0(),q=A.aZq(B.c9,!1,s,s,0,B.e,B.Pa,B.E6,r),p=$.b79(),o=$.b7a(),n=$.Qk(),m=$.aY_(),l=$.xc(),k=$.CH()
 n=A.aBj(m,l,$.nl(),p,s,s,o,r,s,k,s,s,s,n,s)
-return new A.GA(B.Fq,"PromptBox",A.Ay(q,s,B.IV,B.MB,B.c9,A.b2q(s,s,s,B.e,B.cm,s,l.cc(B.bH),s,s,s,s,s,new A.cF(A.aS(6),B.bQ),s),n,!0),!1,s)}}
+return new A.GA(B.Fq,"PROMPTBOX",A.Ay(q,s,B.IV,B.MB,B.c9,A.b2q(s,s,s,B.e,B.cm,s,l.cc(B.bH),s,s,s,s,s,new A.cF(A.aS(6),B.bQ),s),n,!0),!1,s)}}
 A.auB.prototype={
 H(){return"RealtimeProtocolVersion."+this.b}}
 A.w3.prototype={

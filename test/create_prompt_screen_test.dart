@@ -9,7 +9,8 @@ void main() {
     return MaterialApp(
       theme: AppTheme.lightTheme,
       home: CreatePromptScreen(
-        initialPrompt: initialPrompt ??
+        initialPrompt:
+            initialPrompt ??
             const PromptModel(
               id: '1',
               title: 'Cinematic Coffee Photography',
@@ -22,7 +23,9 @@ void main() {
     );
   }
 
-  testWidgets('CreatePromptScreen renders all required form sections', (tester) async {
+  testWidgets('CreatePromptScreen renders all required form sections', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildTestWidget());
     await tester.pump();
 
@@ -76,7 +79,9 @@ void main() {
     expect(find.text('minimalist'), findsOneWidget);
   });
 
-  testWidgets('User can switch visibility between Public and Private', (tester) async {
+  testWidgets('User can switch visibility between Public and Private', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildTestWidget());
     await tester.pump();
 

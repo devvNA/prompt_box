@@ -25,7 +25,7 @@ class PromptStudioApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PromptBox',
+      title: 'PROMPTBOX',
       theme: AppTheme.lightTheme,
       home: const AuthGate(),
       debugShowCheckedModeBanner: false,
