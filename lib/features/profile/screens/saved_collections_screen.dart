@@ -124,7 +124,7 @@ class _SavedCollectionsScreenState
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 540),
+            constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
             child: Column(
               children: [
                 // Top Header Bar
@@ -440,23 +440,28 @@ class _SavedCollectionsScreenState
       color: AppColors.ink,
       backgroundColor: AppColors.yellow,
       onRefresh: () => ref.read(bookmarkedPromptsNotifierProvider.notifier).refresh(),
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pagePadding,
-          8,
-          AppSpacing.pagePadding,
-          32,
-        ),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.68,
-        ),
-        itemCount: filtered.length,
-        itemBuilder: (context, index) {
-          return _buildPromptCard(filtered[index]);
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
+          return GridView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.pagePadding,
+              8,
+              AppSpacing.pagePadding,
+              32,
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.68,
+            ),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              return _buildPromptCard(filtered[index]);
+            },
+          );
         },
       ),
     );

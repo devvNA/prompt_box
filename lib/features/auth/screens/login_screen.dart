@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/brutal_checkbox.dart';
+import '../../../core/widgets/brutal_snackbar.dart';
 import '../models/auth_state.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_text_field.dart';
@@ -115,54 +116,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(
-          top: 16,
-          left: AppSpacing.pagePadding,
-          right: AppSpacing.pagePadding,
-          bottom: 24,
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.ink,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.ink, width: 2),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x40000000),
-                offset: Offset(3, 3),
-                blurRadius: 6,
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.info_outline, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+  void _showToast(
+    String message, [
+    BrutalSnackbarType type = BrutalSnackbarType.info,
+  ]) {
+    BrutalSnackbar.show(context, message: message, type: type);
   }
 
   void _handleSubmit() {
@@ -446,13 +404,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             controller: _passwordController,
             hintText: _isSignIn ? '••••••••' : 'At least 6 characters',
             obscureText: _obscurePassword,
-            suffixIcon: IconButton(
-              onPressed: () {
+            suffixIcon: GestureDetector(
+              onTap: () {
                 setState(() {
                   _obscurePassword = !_obscurePassword;
                 });
               },
-              icon: Icon(
+              child: Icon(
                 _obscurePassword
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
@@ -558,8 +516,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _SocialButton(
           text: 'Continue with Apple',
           icon: const Icon(Icons.apple, size: 22, color: AppColors.ink),
-          onTap: () =>
-              _showToast('Apple sign-in is coming soon. Use email or Google.'),
+          onTap: () => _showToast(
+            'Apple sign-in is coming soon. Use email or Google.',
+            BrutalSnackbarType.info,
+          ),
         ),
       ],
     );

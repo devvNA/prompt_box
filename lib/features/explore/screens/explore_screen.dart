@@ -179,7 +179,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 540),
+            constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
             child: Column(
               children: [
                 // Header
@@ -526,23 +526,28 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       backgroundColor: AppColors.yellow,
       onRefresh: () =>
           ref.read(explorePromptsNotifierProvider.notifier).refresh(),
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pagePadding,
-          8,
-          AppSpacing.pagePadding,
-          100, // Bottom padding for navigation
-        ),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.68,
-        ),
-        itemCount: list.length,
-        itemBuilder: (context, index) {
-          return _buildCommunityCard(list[index]);
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
+          return GridView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.pagePadding,
+              8,
+              AppSpacing.pagePadding,
+              100, // Bottom padding for navigation
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.68,
+            ),
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              return _buildCommunityCard(list[index]);
+            },
+          );
         },
       ),
     );

@@ -46,17 +46,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+            child: Stack(
               children: [
-                _buildHeader(),
-                _buildSearchBar(),
-                _buildCategories(),
-                _buildActiveFilterChips(),
-                Expanded(child: _buildGrid(promptsAsync)),
-              ],
-            ),
+                Column(
+                  children: [
+                    _buildHeader(),
+                    _buildSearchBar(),
+                    _buildCategories(),
+                    _buildActiveFilterChips(),
+                    Expanded(child: _buildGrid(promptsAsync)),
+                  ],
+                ),
 
             // Floating Action Button
             Positioned(
@@ -73,7 +76,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 right: 0,
                 child: _buildBottomNav(),
               ),
-          ],
+            ],
+          ),
+          ),
         ),
       ),
     );
@@ -476,25 +481,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ref.read(promptListNotifierProvider.notifier).refresh(),
           color: AppColors.ink,
           backgroundColor: AppColors.yellow,
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.pagePadding,
-              8,
-              AppSpacing.pagePadding,
-              100,
-            ),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.7,
-            ),
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              return PromptCard(
-                prompt: filtered[index],
-                onUpdate: () => ref.read(promptListNotifierProvider.notifier).refresh(),
-                onDelete: () => ref.read(promptListNotifierProvider.notifier).refresh(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
+              return GridView.builder(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.pagePadding,
+                  8,
+                  AppSpacing.pagePadding,
+                  100,
+                ),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.7,
+                ),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  return PromptCard(
+                    prompt: filtered[index],
+                    onUpdate: () => ref.read(promptListNotifierProvider.notifier).refresh(),
+                    onDelete: () => ref.read(promptListNotifierProvider.notifier).refresh(),
+                  );
+                },
               );
             },
           ),

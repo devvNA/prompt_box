@@ -127,74 +127,81 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.pagePadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top Action Row
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: _onSkip,
-                  child: Text('Skip', style: AppTypography.button),
-                ),
-              ),
-
-              // Page Content
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  children: [_buildPage1(), _buildPage2(), _buildPage3()],
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xl),
-
-              // Page Indicator
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pageCount, (index) {
-                  final isActive = _currentPage == index;
-                  return GestureDetector(
-                    onTap: () {
-                      _pageController.animateToPage(
-                        index,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isActive
-                            ? AppColors.ink
-                            : AppColors.muted.withValues(alpha: 0.3),
-                      ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppSpacing.maxContentWidth,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.pagePadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Top Action Row
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: TextButton(
+                      onPressed: _onSkip,
+                      child: Text('Skip', style: AppTypography.button),
                     ),
-                  );
-                }),
-              ),
+                  ),
 
-              const SizedBox(height: AppSpacing.xxl),
+                  // Page Content
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      children: [_buildPage1(), _buildPage2(), _buildPage3()],
+                    ),
+                  ),
 
-              // Next / Get Started Button
-              BrutalButton(
-                text: isLastPage ? 'Get Started' : 'Next  →',
-                isFullWidth: true,
-                onPressed: _onNext,
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Page Indicator
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_pageCount, (index) {
+                      final isActive = _currentPage == index;
+                      return GestureDetector(
+                        onTap: () {
+                          _pageController.animateToPage(
+                            index,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isActive
+                                ? AppColors.ink
+                                : AppColors.muted.withValues(alpha: 0.3),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Next / Get Started Button
+                  BrutalButton(
+                    text: isLastPage ? 'Get Started' : 'Next  →',
+                    isFullWidth: true,
+                    onPressed: _onNext,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
+            ),
           ),
         ),
       ),
