@@ -90,9 +90,7 @@ class PromptListNotifier extends AsyncNotifier<List<PromptModel>> {
   void updatePromptInMemory(PromptModel updatedPrompt) {
     final current = state.value ?? [];
     state = AsyncData(
-      current
-          .map((p) => p.id == updatedPrompt.id ? updatedPrompt : p)
-          .toList(),
+      current.map((p) => p.id == updatedPrompt.id ? updatedPrompt : p).toList(),
     );
   }
 

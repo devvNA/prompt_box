@@ -13,6 +13,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/brutal_input.dart';
+import '../../../core/widgets/brutal_snackbar.dart';
 import '../models/prompt_model.dart';
 import '../providers/prompt_provider.dart';
 
@@ -88,12 +89,16 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
   Uint8List? _imageBytes;
   bool _isPublic = true;
   bool _isSaving = false;
+  String? _titleError;
+  String? _contentError;
+  late final ScrollController _scrollController;
 
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     final p = widget.initialPrompt;
     _titleController = TextEditingController(text: p?.title ?? '');
     _contentController = TextEditingController(text: p?.content ?? '');
@@ -114,6 +119,7 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _titleController.dispose();
     _contentController.dispose();
     _tagInputController.dispose();
@@ -166,12 +172,8 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Couldn\'t add image: $e'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
+        ScaffoldMessenger.of(context).clearSnackBars();
+        BrutalSnackbar.showError(context, 'Couldn\'t add image: $e');
       }
     }
   }
@@ -202,74 +204,90 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
                   style: AppTypography.cardTitle.copyWith(fontSize: 14),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_library,
-                    color: AppColors.ink,
-                  ),
-                  title: Text('Gallery', style: AppTypography.bodyBold),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: AppColors.ink, width: 1.5),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                ListTile(
-                  leading: const Icon(Icons.camera_alt, color: AppColors.ink),
-                  title: Text('Camera', style: AppTypography.bodyBold),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: AppColors.ink, width: 1.5),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                ListTile(
-                  leading: const Icon(Icons.link, color: AppColors.ink),
-                  title: Text('Image URL', style: AppTypography.bodyBold),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: AppColors.ink, width: 1.5),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _showImageUrlDialog();
-                  },
-                ),
-                if (_hasImage) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  ListTile(
+                Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  child: ListTile(
                     leading: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.danger,
+                      Icons.photo_library,
+                      color: AppColors.ink,
                     ),
-                    title: Text(
-                      'Remove image',
-                      style: AppTypography.bodyBold.copyWith(
-                        color: AppColors.danger,
-                      ),
-                    ),
+                    title: Text('Gallery', style: AppTypography.bodyBold),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(
-                        color: AppColors.danger,
-                        width: 1.5,
-                      ),
+                      side: const BorderSide(color: AppColors.ink, width: 1.5),
                     ),
                     onTap: () {
                       Navigator.pop(ctx);
-                      setState(() {
-                        _imageBytes = null;
-                        _imageUrl = null;
-                      });
+                      _pickImage(ImageSource.gallery);
                     },
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  child: ListTile(
+                    leading: const Icon(Icons.camera_alt, color: AppColors.ink),
+                    title: Text('Camera', style: AppTypography.bodyBold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: AppColors.ink, width: 1.5),
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickImage(ImageSource.camera);
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  child: ListTile(
+                    leading: const Icon(Icons.link, color: AppColors.ink),
+                    title: Text('Image URL', style: AppTypography.bodyBold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: AppColors.ink, width: 1.5),
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _showImageUrlDialog();
+                    },
+                  ),
+                ),
+                if (_hasImage) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.danger,
+                      ),
+                      title: Text(
+                        'Remove image',
+                        style: AppTypography.bodyBold.copyWith(
+                          color: AppColors.danger,
+                        ),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: const BorderSide(
+                          color: AppColors.danger,
+                          width: 1.5,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        setState(() {
+                          _imageBytes = null;
+                          _imageUrl = null;
+                        });
+                      },
+                    ),
                   ),
                 ],
               ],
@@ -478,23 +496,22 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
 
-    if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add a title'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-      return;
-    }
+    final titleIsEmpty = title.isEmpty;
+    final contentIsEmpty = content.isEmpty;
 
-    if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add prompt content'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
+    if (titleIsEmpty || contentIsEmpty) {
+      setState(() {
+        _titleError = titleIsEmpty ? 'Add a title' : null;
+        _contentError = contentIsEmpty ? 'Add prompt content' : null;
+      });
+
+      if (titleIsEmpty && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
       return;
     }
 
@@ -536,13 +553,8 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
           _isSaving = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Prompt saved'),
-            backgroundColor: AppColors.ink,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).clearSnackBars();
+        BrutalSnackbar.showSuccess(context, 'Prompt saved');
 
         Navigator.of(context).pop(savedPrompt);
       }
@@ -552,14 +564,10 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
           _isSaving = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Couldn\'t save prompt: ${e.toString().replaceAll('Exception: ', '')}',
-            ),
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-          ),
+        ScaffoldMessenger.of(context).clearSnackBars();
+        BrutalSnackbar.showError(
+          context,
+          'Couldn\'t save prompt: ${e.toString().replaceAll('Exception: ', '')}',
         );
       }
     }
@@ -578,6 +586,7 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
                 _buildHeader(),
                 Expanded(
                   child: SingleChildScrollView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.xl,
                       vertical: AppSpacing.sm,
@@ -593,6 +602,13 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
                             isRequired: true,
                             controller: _titleController,
                             hintText: 'Enter title',
+                            errorText: _titleError,
+                            onChanged: (val) {
+                              if (_titleError != null &&
+                                  val.trim().isNotEmpty) {
+                                setState(() => _titleError = null);
+                              }
+                            },
                           ),
                           const SizedBox(height: 20),
 
@@ -604,6 +620,13 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
                             hintText: 'Type your prompt...',
                             minLines: 4,
                             maxLines: 6,
+                            errorText: _contentError,
+                            onChanged: (val) {
+                              if (_contentError != null &&
+                                  val.trim().isNotEmpty) {
+                                setState(() => _contentError = null);
+                              }
+                            },
                           ),
                           const SizedBox(height: 20),
 
@@ -668,8 +691,8 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
               widget.isRemix
                   ? 'Remix Prompt'
                   : (widget.initialPrompt != null
-                      ? 'Edit Prompt'
-                      : 'Create New Prompt'),
+                        ? 'Edit Prompt'
+                        : 'Create New Prompt'),
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,

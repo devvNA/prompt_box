@@ -22,6 +22,7 @@ class BrutalInput extends StatelessWidget {
 
   final bool isRequired;
   final Widget? labelSuffix;
+  final String? errorText;
 
   const BrutalInput({
     super.key,
@@ -41,10 +42,13 @@ class BrutalInput extends StatelessWidget {
     this.focusNode,
     this.isRequired = false,
     this.labelSuffix,
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null && errorText!.trim().isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -83,7 +87,9 @@ class BrutalInput extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppSpacing.radiusDefault),
-            border: AppBorders.standard(color: AppColors.ink),
+            border: AppBorders.standard(
+              color: hasError ? AppColors.danger : AppColors.ink,
+            ),
             boxShadow: const [
               BoxShadow(
                 color: AppColors.ink,
@@ -122,6 +128,29 @@ class BrutalInput extends StatelessWidget {
             ),
           ),
         ),
+        if (hasError) ...[
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 14,
+                color: AppColors.danger,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  errorText!,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

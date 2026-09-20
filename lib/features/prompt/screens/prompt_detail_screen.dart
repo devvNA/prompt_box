@@ -364,7 +364,9 @@ class _PromptDetailScreenState extends ConsumerState<PromptDetailScreen> {
           top: !hasImage,
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+              constraints: const BoxConstraints(
+                maxWidth: AppSpacing.maxContentWidth,
+              ),
               child: Column(
                 children: [
                   Expanded(

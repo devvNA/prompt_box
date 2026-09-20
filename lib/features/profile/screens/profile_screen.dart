@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:prompt_box/core/widgets/brutal_snackbar.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -37,6 +38,13 @@ class ProfileScreen extends ConsumerWidget {
         (stats.avatarUrl != null && stats.avatarUrl!.trim().isNotEmpty)
         ? stats.avatarUrl!
         : _defaultAvatarUrl;
+
+    void showToast(
+      String message, [
+      BrutalSnackbarType type = BrutalSnackbarType.info,
+    ]) {
+      BrutalSnackbar.show(context, message: message, type: type);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -226,12 +234,18 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.lock_outline,
                       title: 'Privacy & Visibility',
                       subtitle: 'Manage public and private prompts',
+                      onTap: () {
+                        showToast('Privacy & Visibility is coming soon.');
+                      },
                     ),
                     const SizedBox(height: 10),
                     _buildMenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Preferences',
                       subtitle: 'Theme tokens & export options',
+                      onTap: () {
+                        showToast('Preferences is coming soon.');
+                      },
                     ),
 
                     const SizedBox(height: 24),
