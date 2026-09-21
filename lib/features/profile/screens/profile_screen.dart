@@ -8,7 +8,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brutal_button.dart';
+import '../../auth/models/auth_state.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../prompt/providers/prompt_provider.dart';
 import '../models/profile_stats_model.dart';
 import '../providers/profile_provider.dart';
 import 'saved_collections_screen.dart';
@@ -27,16 +29,24 @@ class ProfileScreen extends ConsumerWidget {
     final isStatsLoading = statsAsync.isLoading;
 
     final user = authState.user;
-    final email = user?.email ?? 'Unknown User';
-    final name = (stats.username != null && stats.username!.trim().isNotEmpty)
-        ? stats.username!
-        : (user?.userMetadata?['username'] as String? ?? 'User');
-    final bio = (stats.bio != null && stats.bio!.trim().isNotEmpty)
-        ? stats.bio!
-        : 'AI Prompt Engineer';
-    final avatarUrl =
-        (stats.avatarUrl != null && stats.avatarUrl!.trim().isNotEmpty)
-        ? stats.avatarUrl!
+    final isAuthenticated =
+        authState.status == AuthStatus.authenticated && user != null;
+
+    final email = isAuthenticated ? (user.email ?? '-') : '-';
+    final name = isAuthenticated
+        ? ((stats.username != null && stats.username!.trim().isNotEmpty)
+              ? stats.username!
+              : (user.userMetadata?['username'] as String? ?? 'User'))
+        : '-';
+    final bio = isAuthenticated
+        ? ((stats.bio != null && stats.bio!.trim().isNotEmpty)
+              ? stats.bio!
+              : 'AI Prompt Engineer')
+        : '-';
+    final avatarUrl = isAuthenticated
+        ? ((stats.avatarUrl != null && stats.avatarUrl!.trim().isNotEmpty)
+              ? stats.avatarUrl!
+              : _defaultAvatarUrl)
         : _defaultAvatarUrl;
 
     void showToast(
@@ -157,9 +167,11 @@ class ProfileScreen extends ConsumerWidget {
                         Expanded(
                           child: _buildStatCard(
                             title: 'Prompts',
-                            value: isStatsLoading && stats.totalPrompts == 0
-                                ? '...'
-                                : stats.formattedPrompts,
+                            value: !isAuthenticated
+                                ? '0'
+                                : (isStatsLoading && stats.totalPrompts == 0
+                                      ? '...'
+                                      : stats.formattedPrompts),
                             color: AppColors.yellow,
                             icon: Icons.auto_awesome,
                           ),
@@ -168,9 +180,11 @@ class ProfileScreen extends ConsumerWidget {
                         Expanded(
                           child: _buildStatCard(
                             title: 'Likes',
-                            value: isStatsLoading && stats.totalLikes == 0
-                                ? '...'
-                                : stats.formattedLikes,
+                            value: !isAuthenticated
+                                ? '0'
+                                : (isStatsLoading && stats.totalLikes == 0
+                                      ? '...'
+                                      : stats.formattedLikes),
                             color: const Color(0xFF8BF2FA),
                             icon: Icons.favorite,
                           ),
@@ -183,9 +197,11 @@ class ProfileScreen extends ConsumerWidget {
                         Expanded(
                           child: _buildStatCard(
                             title: 'Collections',
-                            value: isStatsLoading && stats.totalCollections == 0
-                                ? '...'
-                                : stats.formattedCollections,
+                            value: !isAuthenticated
+                                ? '0'
+                                : (isStatsLoading && stats.totalCollections == 0
+                                      ? '...'
+                                      : stats.formattedCollections),
                             color: const Color(0xFF4ADE80),
                             icon: Icons.folder_special,
                           ),
@@ -194,9 +210,11 @@ class ProfileScreen extends ConsumerWidget {
                         Expanded(
                           child: _buildStatCard(
                             title: 'Views',
-                            value: isStatsLoading && stats.totalViews == 0
-                                ? '...'
-                                : stats.formattedViews,
+                            value: !isAuthenticated
+                                ? '0'
+                                : (isStatsLoading && stats.totalViews == 0
+                                      ? '...'
+                                      : stats.formattedViews),
                             color: const Color(0xFFE9D5FF),
                             icon: Icons.visibility,
                           ),
@@ -386,9 +404,17 @@ class ProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => _LogoutConfirmationDialog(
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.pop(ctx);
-          ref.read(authNotifierProvider.notifier).signOut();
+          // 1. Immediately wipe all profile, bookmark, and user prompt state data
+          ref.read(profileStatsNotifierProvider.notifier).clear();
+          ref.read(bookmarkedPromptsNotifierProvider.notifier).clear();
+          ref.invalidate(profileStatsNotifierProvider);
+          ref.invalidate(bookmarkedPromptsNotifierProvider);
+          ref.invalidate(promptListNotifierProvider);
+
+          // 2. Perform sign out in Supabase & AuthNotifier
+          await ref.read(authNotifierProvider.notifier).signOut();
         },
       ),
     );

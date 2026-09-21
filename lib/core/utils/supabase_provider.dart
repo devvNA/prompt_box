@@ -5,12 +5,18 @@ final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
 });
 
-final currentUserIdProvider = Provider<String?>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  return client.auth.currentUser?.id;
-});
-
 final authStateChangesProvider = StreamProvider<AuthState>((ref) {
   final client = ref.watch(supabaseClientProvider);
   return client.auth.onAuthStateChange;
+});
+
+final currentUserProvider = Provider<User?>((ref) {
+  // Re-evaluates automatically whenever auth state changes (login, logout, refresh)
+  ref.watch(authStateChangesProvider);
+  final client = ref.watch(supabaseClientProvider);
+  return client.auth.currentUser;
+});
+
+final currentUserIdProvider = Provider<String?>((ref) {
+  return ref.watch(currentUserProvider)?.id;
 });

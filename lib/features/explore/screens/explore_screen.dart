@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../dashboard/widgets/prompt_card.dart';
 import '../../prompt/models/prompt_model.dart';
 import '../../prompt/screens/prompt_detail_screen.dart';
 import '../providers/explore_provider.dart';
@@ -179,7 +180,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+            constraints: const BoxConstraints(
+              maxWidth: AppSpacing.maxContentWidth,
+            ),
             child: Column(
               children: [
                 // Header
@@ -197,9 +200,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 Expanded(
                   child: publicPromptsAsync.when(
                     data: (prompts) => _buildGrid(prompts),
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(color: AppColors.ink),
-                    ),
+                    loading: () => _buildSkeletonGrid(),
                     error: (error, _) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24.0),
@@ -541,7 +542,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               crossAxisCount: columns,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.68,
+              childAspectRatio: 0.58,
             ),
             itemCount: list.length,
             itemBuilder: (context, index) {
@@ -553,8 +554,36 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     );
   }
 
+  Widget _buildSkeletonGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
+        return GridView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pagePadding,
+            8,
+            AppSpacing.pagePadding,
+            100,
+          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.58,
+          ),
+          itemCount: 4,
+          itemBuilder: (context, index) {
+            return PromptCardSkeleton(index: index);
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildCommunityCard(PromptModel item) {
     final isImage = item.hasImage;
+    final promptSnippet = item.content.replaceAll(RegExp(r'\s+'), ' ').trim();
 
     return GestureDetector(
       onTap: () => _openDetail(item),
@@ -576,7 +605,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           children: [
             // Thumbnail Area
             Expanded(
-              flex: 4,
+              flex: 8,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -683,7 +712,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
             // Content Area
             Expanded(
-              flex: 5,
+              flex: 11,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 14, 10, 8),
                 child: Column(
@@ -716,6 +745,116 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
 
+                    // Prompt Snippet
+                    if (promptSnippet.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppColors.ink.withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 1.5, right: 4),
+                              child: Icon(
+                                Icons.format_quote_rounded,
+                                size: 11,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                promptSnippet,
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF4B5563),
+                                  height: 1.25,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Tags
+                    if (item.tags.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          ...item.tags.take(2).map((tag) {
+                            final displayTag = tag.startsWith('#')
+                                ? tag
+                                : '#$tag';
+                            return Container(
+                              constraints: const BoxConstraints(maxWidth: 80),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF2F6),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppColors.ink.withValues(alpha: 0.15),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                displayTag,
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }),
+                          if (item.tags.length > 2)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppColors.ink.withValues(alpha: 0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '+${item.tags.length - 2}',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+
                     const Spacer(),
 
                     // Author info footer
@@ -730,8 +869,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         children: [
                           // Author avatar
                           Container(
-                            width: 20,
-                            height: 20,
+                            width: 18,
+                            height: 18,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
@@ -746,12 +885,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 5),
                           Expanded(
                             child: Text(
                               item.authorName ?? 'Creator',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.ink,
                               ),

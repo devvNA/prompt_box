@@ -136,18 +136,21 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('remember_me'), isTrue);
       expect(prefs.getString('saved_email'), equals('user@example.com'));
+      expect(prefs.getString('saved_password'), equals('password123'));
     });
 
-    testWidgets('pre-fills email when Remember me was previously saved', (tester) async {
+    testWidgets('pre-fills email and password when Remember me was previously saved', (tester) async {
       SharedPreferences.setMockInitialValues({
         'remember_me': true,
         'saved_email': 'saved@example.com',
+        'saved_password': 'savedPassword123',
       });
 
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
       expect(find.text('saved@example.com'), findsOneWidget);
+      expect(find.text('savedPassword123'), findsOneWidget);
       final checkbox = tester.widget<BrutalCheckbox>(find.byType(BrutalCheckbox));
       expect(checkbox.value, isTrue);
     });

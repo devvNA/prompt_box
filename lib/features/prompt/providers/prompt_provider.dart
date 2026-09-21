@@ -23,6 +23,10 @@ class PromptListNotifier extends AsyncNotifier<List<PromptModel>> {
 
   @override
   Future<List<PromptModel>> build() async {
+    final userId = ref.watch(currentUserIdProvider);
+    if (userId == null || userId.isEmpty) {
+      return [];
+    }
     return _repository.getUserPrompts();
   }
 

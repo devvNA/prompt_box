@@ -48,7 +48,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+            constraints: const BoxConstraints(
+              maxWidth: AppSpacing.maxContentWidth,
+            ),
             child: Stack(
               children: [
                 Column(
@@ -61,23 +63,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
 
-            // Floating Action Button
-            Positioned(
-              bottom: widget.showBottomNav ? 80 : 20,
-              right: AppSpacing.pagePadding,
-              child: _buildFloatingButton(),
-            ),
+                // Floating Action Button
+                Positioned(
+                  bottom: widget.showBottomNav ? 80 : 20,
+                  right: AppSpacing.pagePadding,
+                  child: _buildFloatingButton(),
+                ),
 
-            // Bottom Navigation
-            if (widget.showBottomNav)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildBottomNav(),
-              ),
-            ],
-          ),
+                // Bottom Navigation
+                if (widget.showBottomNav)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildBottomNav(),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -173,7 +175,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: TextField(
                       controller: _searchController,
                       onChanged: (val) {
-                        ref.read(dashboardFilterProvider.notifier).updateSearchQuery(val.trim());
+                        ref
+                            .read(dashboardFilterProvider.notifier)
+                            .updateSearchQuery(val.trim());
                       },
                       decoration: InputDecoration(
                         hintText: 'Search prompts...',
@@ -197,7 +201,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     GestureDetector(
                       onTap: () {
                         _searchController.clear();
-                        ref.read(dashboardFilterProvider.notifier).clearSearch();
+                        ref
+                            .read(dashboardFilterProvider.notifier)
+                            .clearSearch();
                       },
                       child: const Icon(
                         Icons.close,
@@ -269,7 +275,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildCategories() {
-    final selectedCategory = ref.watch(dashboardFilterProvider).selectedCategory;
+    final selectedCategory = ref
+        .watch(dashboardFilterProvider)
+        .selectedCategory;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
@@ -332,23 +340,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           if (filterState.sortBy != 'newest')
             _buildActiveChip(
-              label: 'Sort: ${filterState.sortBy == 'likes' ? 'Popular' : filterState.sortBy == 'oldest' ? 'Oldest' : 'A-Z'}',
-              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeSort(),
+              label:
+                  'Sort: ${filterState.sortBy == 'likes'
+                      ? 'Popular'
+                      : filterState.sortBy == 'oldest'
+                      ? 'Oldest'
+                      : 'A-Z'}',
+              onRemove: () =>
+                  ref.read(dashboardFilterProvider.notifier).removeSort(),
             ),
           if (filterState.filterType != 'all')
             _buildActiveChip(
-              label: filterState.filterType == 'image' ? 'With Image' : 'Text Only',
-              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeTypeFilter(),
+              label: filterState.filterType == 'image'
+                  ? 'With Image'
+                  : 'Text Only',
+              onRemove: () =>
+                  ref.read(dashboardFilterProvider.notifier).removeTypeFilter(),
             ),
           if (filterState.filterVisibility != 'all')
             _buildActiveChip(
-              label: filterState.filterVisibility == 'public' ? 'Public' : 'Private',
-              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeVisibilityFilter(),
+              label: filterState.filterVisibility == 'public'
+                  ? 'Public'
+                  : 'Private',
+              onRemove: () => ref
+                  .read(dashboardFilterProvider.notifier)
+                  .removeVisibilityFilter(),
             ),
           if (filterState.selectedTag != null)
             _buildActiveChip(
               label: '#${filterState.selectedTag}',
-              onRemove: () => ref.read(dashboardFilterProvider.notifier).removeTagFilter(),
+              onRemove: () =>
+                  ref.read(dashboardFilterProvider.notifier).removeTagFilter(),
             ),
           GestureDetector(
             onTap: () {
@@ -424,19 +446,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return FilterModal(
           availableTags: availableTags,
           initialState: ref.read(dashboardFilterProvider),
-          onApply: ({
-            required filterType,
-            required filterVisibility,
-            required selectedTag,
-            required sortBy,
-          }) {
-            ref.read(dashboardFilterProvider.notifier).updateFilters(
-                  type: filterType,
-                  visibility: filterVisibility,
-                  sortBy: sortBy,
-                  tag: selectedTag,
-                );
-          },
+          onApply:
+              ({
+                required filterType,
+                required filterVisibility,
+                required selectedTag,
+                required sortBy,
+              }) {
+                ref
+                    .read(dashboardFilterProvider.notifier)
+                    .updateFilters(
+                      type: filterType,
+                      visibility: filterVisibility,
+                      sortBy: sortBy,
+                      tag: selectedTag,
+                    );
+              },
         );
       },
     );
@@ -445,17 +470,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _buildGrid(AsyncValue<List<PromptModel>> promptsAsync) {
     return promptsAsync.when(
       data: (prompts) {
-        final filtered = ref.read(dashboardFilterProvider.notifier).applyFilters(prompts);
+        final filtered = ref
+            .read(dashboardFilterProvider.notifier)
+            .applyFilters(prompts);
 
         if (filtered.isEmpty) {
           final filterState = ref.read(dashboardFilterProvider);
-          if (filterState.searchQuery.isNotEmpty || 
-              filterState.selectedCategory != 'All' || 
+          if (filterState.searchQuery.isNotEmpty ||
+              filterState.selectedCategory != 'All' ||
               filterState.hasActiveFilters) {
             return Center(
               child: EmptyState(
                 title: 'No Matching Prompts',
-                description: 'No prompts match your active search or filter criteria.',
+                description:
+                    'No prompts match your active search or filter criteria.',
                 buttonText: 'Reset Filters',
                 onButtonPressed: _resetAllFilters,
               ),
@@ -483,7 +511,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           backgroundColor: AppColors.yellow,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
+              final columns = AppSpacing.gridCrossAxisCount(
+                constraints.maxWidth,
+              );
               return GridView.builder(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.pagePadding,
@@ -495,14 +525,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisCount: columns,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.7,
+                  childAspectRatio: 0.58,
                 ),
                 itemCount: filtered.length,
                 itemBuilder: (context, index) {
                   return PromptCard(
                     prompt: filtered[index],
-                    onUpdate: () => ref.read(promptListNotifierProvider.notifier).refresh(),
-                    onDelete: () => ref.read(promptListNotifierProvider.notifier).refresh(),
+                    onUpdate: () =>
+                        ref.read(promptListNotifierProvider.notifier).refresh(),
+                    onDelete: () =>
+                        ref.read(promptListNotifierProvider.notifier).refresh(),
                   );
                 },
               );
@@ -510,8 +542,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         );
       },
-      loading: () =>
-          const Center(child: CircularProgressIndicator(color: AppColors.ink)),
+      loading: () => _buildSkeletonGrid(),
       error: (err, stack) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -535,6 +566,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
+        return GridView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pagePadding,
+            8,
+            AppSpacing.pagePadding,
+            100,
+          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.58,
+          ),
+          itemCount: 4,
+          itemBuilder: (context, index) {
+            return PromptCardSkeleton(index: index);
+          },
+        );
+      },
     );
   }
 

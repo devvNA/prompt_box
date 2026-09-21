@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../dashboard/widgets/prompt_card.dart';
 import '../../prompt/models/prompt_model.dart';
 import '../../prompt/screens/prompt_detail_screen.dart';
 import '../providers/profile_provider.dart';
@@ -124,7 +125,9 @@ class _SavedCollectionsScreenState
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+            constraints: const BoxConstraints(
+              maxWidth: AppSpacing.maxContentWidth,
+            ),
             child: Column(
               children: [
                 // Top Header Bar
@@ -142,9 +145,7 @@ class _SavedCollectionsScreenState
                 Expanded(
                   child: promptListAsync.when(
                     data: (prompts) => _buildGrid(prompts),
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(color: AppColors.ink),
-                    ),
+                    loading: () => _buildSkeletonGrid(),
                     error: (error, _) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24.0),
@@ -169,7 +170,9 @@ class _SavedCollectionsScreenState
                             BrutalButton(
                               text: 'Retry',
                               onPressed: () => ref
-                                  .read(bookmarkedPromptsNotifierProvider.notifier)
+                                  .read(
+                                    bookmarkedPromptsNotifierProvider.notifier,
+                                  )
                                   .refresh(),
                             ),
                           ],
@@ -439,7 +442,8 @@ class _SavedCollectionsScreenState
     return RefreshIndicator(
       color: AppColors.ink,
       backgroundColor: AppColors.yellow,
-      onRefresh: () => ref.read(bookmarkedPromptsNotifierProvider.notifier).refresh(),
+      onRefresh: () =>
+          ref.read(bookmarkedPromptsNotifierProvider.notifier).refresh(),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
@@ -467,8 +471,36 @@ class _SavedCollectionsScreenState
     );
   }
 
+  Widget _buildSkeletonGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
+        return GridView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pagePadding,
+            8,
+            AppSpacing.pagePadding,
+            32,
+          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.58,
+          ),
+          itemCount: 4,
+          itemBuilder: (context, index) {
+            return PromptCardSkeleton(index: index);
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildPromptCard(PromptModel item) {
     final isImage = item.hasImage;
+    final promptSnippet = item.content.replaceAll(RegExp(r'\s+'), ' ').trim();
 
     return GestureDetector(
       onTap: () => _openDetail(item),
@@ -490,7 +522,7 @@ class _SavedCollectionsScreenState
           children: [
             // Thumbnail Area (Image or Abstract Graphic)
             Expanded(
-              flex: 4,
+              flex: 3,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -600,6 +632,116 @@ class _SavedCollectionsScreenState
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+
+                    // Prompt Snippet
+                    if (promptSnippet.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppColors.ink.withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 1.5, right: 4),
+                              child: Icon(
+                                Icons.format_quote_rounded,
+                                size: 11,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                promptSnippet,
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF4B5563),
+                                  height: 1.25,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Tags
+                    if (item.tags.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          ...item.tags.take(2).map((tag) {
+                            final displayTag = tag.startsWith('#')
+                                ? tag
+                                : '#$tag';
+                            return Container(
+                              constraints: const BoxConstraints(maxWidth: 80),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF2F6),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppColors.ink.withValues(alpha: 0.15),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                displayTag,
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }),
+                          if (item.tags.length > 2)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppColors.ink.withValues(alpha: 0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '+${item.tags.length - 2}',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
 
                     const Spacer(),
 

@@ -46,21 +46,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _currentMode = widget.initialMode;
-    _loadSavedEmail();
+    _loadSavedCredentials();
   }
 
-  Future<void> _loadSavedEmail() async {
+  Future<void> _loadSavedCredentials() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final remember = prefs.getBool('remember_me') ?? false;
       if (remember) {
         const secureStorage = FlutterSecureStorage();
-        final savedEmail = await secureStorage.read(key: 'saved_email') ?? '';
+        String? savedEmail = await secureStorage.read(key: 'saved_email');
+        savedEmail ??= prefs.getString('saved_email') ?? '';
+
+        String? savedPassword = await secureStorage.read(key: 'saved_password');
+        savedPassword ??= prefs.getString('saved_password') ?? '';
+
         if (mounted) {
           setState(() {
             _rememberMe = true;
-            if (savedEmail.isNotEmpty && _emailController.text.isEmpty) {
+            if (savedEmail!.isNotEmpty && _emailController.text.isEmpty) {
               _emailController.text = savedEmail;
+            }
+            if (savedPassword!.isNotEmpty && _passwordController.text.isEmpty) {
+              _passwordController.text = savedPassword;
             }
           });
         }
@@ -68,16 +76,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {}
   }
 
-  Future<void> _saveRememberMe(String email) async {
+  Future<void> _saveRememberMe(String email, String password) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       const secureStorage = FlutterSecureStorage();
       if (_rememberMe) {
         await prefs.setBool('remember_me', true);
+        await prefs.setString('saved_email', email);
+        await prefs.setString('saved_password', password);
         await secureStorage.write(key: 'saved_email', value: email);
+        await secureStorage.write(key: 'saved_password', value: password);
       } else {
         await prefs.setBool('remember_me', false);
+        await prefs.remove('saved_email');
+        await prefs.remove('saved_password');
         await secureStorage.delete(key: 'saved_email');
+        await secureStorage.delete(key: 'saved_password');
       }
     } catch (_) {}
   }
@@ -90,10 +104,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       SharedPreferences.getInstance()
           .then((prefs) {
             prefs.setBool('remember_me', false);
+            prefs.remove('saved_email');
+            prefs.remove('saved_password');
           })
           .catchError((_) {});
       const FlutterSecureStorage()
           .delete(key: 'saved_email')
+          .catchError((_) {});
+      const FlutterSecureStorage()
+          .delete(key: 'saved_password')
           .catchError((_) {});
     }
   }
@@ -130,7 +149,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final password = _passwordController.text;
 
     if (_isSignIn) {
-      _saveRememberMe(email);
+      _saveRememberMe(email, password);
       if (widget.onSignIn != null) {
         widget.onSignIn!(email, password);
       } else {
