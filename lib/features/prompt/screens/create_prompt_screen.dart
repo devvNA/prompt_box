@@ -126,14 +126,37 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
     super.dispose();
   }
 
-  void _addTag(String rawTag) {
-    final tag = rawTag.trim().replaceAll('#', '');
-    if (tag.isNotEmpty && !_tags.contains(tag)) {
-      setState(() {
-        _tags.add(tag);
-        _tagInputController.clear();
-      });
+  void _addTag(String rawInput) {
+    final trimmed = rawInput.trim();
+    if (trimmed.isEmpty) {
+      _tagInputController.clear();
+      return;
     }
+
+    final tokens = trimmed
+        .split(RegExp(r'[,;\n]+'))
+        .map(
+          (e) => e
+              .replaceAll('#', '')
+              .replaceAll('"', '')
+              .replaceAll("'", '')
+              .trim(),
+        )
+        .where((e) => e.isNotEmpty);
+
+    bool updated = false;
+    for (final tag in tokens) {
+      final exists = _tags.any((t) => t.toLowerCase() == tag.toLowerCase());
+      if (!exists) {
+        _tags.add(tag);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      setState(() {});
+    }
+    _tagInputController.clear();
   }
 
   void _removeTag(String tag) {
