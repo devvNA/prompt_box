@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/prompt_tag.dart';
 import '../../dashboard/widgets/prompt_card.dart';
 import '../../prompt/models/prompt_model.dart';
 import '../../prompt/screens/prompt_detail_screen.dart';
@@ -33,7 +34,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   ];
   String _selectedCategory = 'All';
   String _searchQuery = '';
-  String _sortBy = 'likes'; // 'likes' or 'recent'
+  String _sortBy = 'recent'; // 'likes' or 'recent'
 
   @override
   void dispose() {
@@ -253,28 +254,33 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'COMMUNITY',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
-                  letterSpacing: -0.5,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'COMMUNITY',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.ink,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              Text(
-                'Explore prompts shared by creators',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.muted,
+                Text(
+                  'Explore prompts shared by creators',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
 
           // Community pill badge
           Container(
@@ -529,7 +535,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ref.read(explorePromptsNotifierProvider.notifier).refresh(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
           return GridView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
@@ -538,11 +543,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               AppSpacing.pagePadding,
               100, // Bottom padding for navigation
             ),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.58,
+            gridDelegate: AppSpacing.promptGridDelegate(
+              context,
+              constraints.maxWidth,
             ),
             itemCount: list.length,
             itemBuilder: (context, index) {
@@ -557,7 +560,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget _buildSkeletonGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
         return GridView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
@@ -566,11 +568,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             AppSpacing.pagePadding,
             100,
           ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.58,
+          gridDelegate: AppSpacing.promptGridDelegate(
+            context,
+            constraints.maxWidth,
           ),
           itemCount: 4,
           itemBuilder: (context, index) {
@@ -604,115 +604,132 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Thumbnail Area
-            Expanded(
-              flex: 8,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isImage ? AppColors.borderMuted : AppColors.yellow,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                    ),
-                    child: isImage
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              topRight: Radius.circular(12),
-                            ),
-                            child: CachedNetworkImage(
-                              imageUrl: item.resultImageUrl!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : _buildAbstractGraphic(item.category),
-                  ),
-
-                  // IMAGE / TXT Badge
-                  Positioned(
-                    bottom: -10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isImage
-                            ? AppColors.green
-                            : const Color(0xFF60A5FA),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.ink, width: 1.8),
-                      ),
-                      child: Text(
-                        isImage ? 'IMAGE' : 'TXT',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.ink,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Likes indicator top right
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        ref
-                            .read(explorePromptsNotifierProvider.notifier)
-                            .toggleLike(item.id);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final imageHeight = AppSpacing.promptCardImageHeight(
+                  constraints.maxWidth,
+                );
+                return SizedBox(
+                  height: imageHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
                         decoration: BoxDecoration(
-                          color: item.isLiked
-                              ? const Color(0xFFFFECEB)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.ink, width: 1.5),
+                          color: isImage
+                              ? AppColors.borderMuted
+                              : AppColors.yellow,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              item.isLiked
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: AppColors.danger,
-                              size: 12,
+                        child: isImage
+                            ? ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
+                                ),
+                                child: CachedNetworkImage(
+                                  imageUrl: item.resultImageUrl!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              )
+                            : _buildAbstractGraphic(item.category),
+                      ),
+
+                      // IMAGE / TXT Badge
+                      Positioned(
+                        bottom: -10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isImage
+                                ? AppColors.green
+                                : const Color(0xFF60A5FA),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.ink,
+                              width: 1.8,
                             ),
-                            const SizedBox(width: 3),
-                            Text(
-                              item.likes.toString(),
-                              style: GoogleFonts.spaceGrotesk(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
+                          ),
+                          child: Text(
+                            isImage ? 'IMAGE' : 'TXT',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Likes indicator top right
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            ref
+                                .read(explorePromptsNotifierProvider.notifier)
+                                .toggleLike(item.id);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: item.isLiked
+                                  ? const Color(0xFFFFECEB)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
                                 color: AppColors.ink,
+                                width: 1.5,
                               ),
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  item.isLiked
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: AppColors.danger,
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  item.likes.toString(),
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.ink,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             // Content Area
             Expanded(
-              flex: 11,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 14, 10, 8),
                 child: Column(
@@ -794,67 +811,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     // Tags
                     if (item.tags.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: [
-                          ...item.tags.take(2).map((tag) {
-                            final displayTag = tag.startsWith('#')
-                                ? tag
-                                : '#$tag';
-                            return Container(
-                              constraints: const BoxConstraints(maxWidth: 80),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEEF2F6),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppColors.ink.withValues(alpha: 0.15),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                displayTag,
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.ink,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }),
-                          if (item.tags.length > 2)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppColors.ink.withValues(alpha: 0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                '+${item.tags.length - 2}',
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.muted,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                      PromptCardTagRow(tags: item.tags),
                     ],
 
+                    const SizedBox(height: 6),
                     const Spacer(),
 
                     // Author info footer

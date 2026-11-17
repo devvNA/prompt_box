@@ -511,9 +511,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           backgroundColor: AppColors.yellow,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final columns = AppSpacing.gridCrossAxisCount(
-                constraints.maxWidth,
-              );
               return GridView.builder(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.pagePadding,
@@ -521,11 +518,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   AppSpacing.pagePadding,
                   100,
                 ),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.58,
+                gridDelegate: AppSpacing.promptGridDelegate(
+                  context,
+                  constraints.maxWidth,
                 ),
                 itemCount: filtered.length,
                 itemBuilder: (context, index) {
@@ -572,7 +567,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _buildSkeletonGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
         return GridView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
@@ -581,11 +575,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             AppSpacing.pagePadding,
             100,
           ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.58,
+          gridDelegate: AppSpacing.promptGridDelegate(
+            context,
+            constraints.maxWidth,
           ),
           itemCount: 4,
           itemBuilder: (context, index) {

@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/prompt_tag.dart';
 import '../../dashboard/widgets/prompt_card.dart';
 import '../../prompt/models/prompt_model.dart';
 import '../../prompt/screens/prompt_detail_screen.dart';
@@ -446,7 +447,6 @@ class _SavedCollectionsScreenState
           ref.read(bookmarkedPromptsNotifierProvider.notifier).refresh(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
           return GridView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
@@ -455,11 +455,10 @@ class _SavedCollectionsScreenState
               AppSpacing.pagePadding,
               32,
             ),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.68,
+            gridDelegate: AppSpacing.promptGridDelegate(
+              context,
+              constraints.maxWidth,
+              extraContentHeight: 14.0,
             ),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
@@ -474,7 +473,6 @@ class _SavedCollectionsScreenState
   Widget _buildSkeletonGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = AppSpacing.gridCrossAxisCount(constraints.maxWidth);
         return GridView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
@@ -483,11 +481,9 @@ class _SavedCollectionsScreenState
             AppSpacing.pagePadding,
             32,
           ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.58,
+          gridDelegate: AppSpacing.promptGridDelegate(
+            context,
+            constraints.maxWidth,
           ),
           itemCount: 4,
           itemBuilder: (context, index) {
@@ -521,86 +517,103 @@ class _SavedCollectionsScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Thumbnail Area (Image or Abstract Graphic)
-            Expanded(
-              flex: 3,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isImage ? AppColors.borderMuted : AppColors.yellow,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final imageHeight = AppSpacing.promptCardImageHeight(
+                  constraints.maxWidth,
+                );
+                return SizedBox(
+                  height: imageHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isImage
+                              ? AppColors.borderMuted
+                              : AppColors.yellow,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                        ),
+                        child: isImage
+                            ? ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
+                                ),
+                                child: CachedNetworkImage(
+                                  imageUrl: item.resultImageUrl!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              )
+                            : _buildAbstractGraphic(item.category),
                       ),
-                    ),
-                    child: isImage
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              topRight: Radius.circular(12),
-                            ),
-                            child: CachedNetworkImage(
-                              imageUrl: item.resultImageUrl!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : _buildAbstractGraphic(item.category),
-                  ),
 
-                  // IMAGE / TXT Badge
-                  Positioned(
-                    bottom: -10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isImage
-                            ? AppColors.green
-                            : const Color(0xFF60A5FA),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.ink, width: 1.8),
-                      ),
-                      child: Text(
-                        isImage ? 'IMAGE' : 'TXT',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.ink,
+                      // IMAGE / TXT Badge
+                      Positioned(
+                        bottom: -10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isImage
+                                ? AppColors.green
+                                : const Color(0xFF60A5FA),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.ink,
+                              width: 1.8,
+                            ),
+                          ),
+                          child: Text(
+                            isImage ? 'IMAGE' : 'TXT',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.ink,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  // Bookmark active indicator icon on top right
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.ink, width: 1.5),
+                      // Bookmark active indicator icon on top right
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.ink,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.bookmark,
+                            color: AppColors.primary,
+                            size: 14,
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.bookmark,
-                        color: AppColors.primary,
-                        size: 14,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             // Text Info & Actions Area
             Expanded(
-              flex: 5,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 14, 10, 8),
                 child: Column(
@@ -682,67 +695,10 @@ class _SavedCollectionsScreenState
                     // Tags
                     if (item.tags.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: [
-                          ...item.tags.take(2).map((tag) {
-                            final displayTag = tag.startsWith('#')
-                                ? tag
-                                : '#$tag';
-                            return Container(
-                              constraints: const BoxConstraints(maxWidth: 80),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEEF2F6),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppColors.ink.withValues(alpha: 0.15),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                displayTag,
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.ink,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }),
-                          if (item.tags.length > 2)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppColors.ink.withValues(alpha: 0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                '+${item.tags.length - 2}',
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.muted,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                      PromptCardTagRow(tags: item.tags),
                     ],
 
+                    const SizedBox(height: 6),
                     const Spacer(),
 
                     // Action Row: Quick Copy & Open

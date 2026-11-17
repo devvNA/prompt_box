@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
@@ -75,5 +76,74 @@ class PromptTag extends StatelessWidget {
     }
 
     return chip;
+  }
+}
+
+/// Renders up to two prompt tags plus a `+N` overflow badge on a single line
+/// without wrapping or overflowing narrow card widths.
+class PromptCardTagRow extends StatelessWidget {
+  final List<String> tags;
+
+  const PromptCardTagRow({super.key, required this.tags});
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleTags = tags.take(2).toList();
+    final remainingCount = tags.length - visibleTags.length;
+
+    return Row(
+      children: [
+        for (var i = 0; i < visibleTags.length; i++) ...[
+          if (i > 0) const SizedBox(width: 4),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2F6),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: AppColors.ink.withValues(alpha: 0.15),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                visibleTags[i].startsWith('#')
+                    ? visibleTags[i]
+                    : '#${visibleTags[i]}',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+        if (remainingCount > 0) ...[
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: AppColors.ink.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              '+$remainingCount',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                color: AppColors.muted,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }

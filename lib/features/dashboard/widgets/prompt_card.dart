@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/prompt_tag.dart';
 import '../../prompt/models/prompt_model.dart';
 import '../../prompt/screens/prompt_detail_screen.dart';
 
@@ -63,66 +65,77 @@ class PromptCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image / Abstract Graphic area
-            Expanded(
-              flex: 7,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isImage ? AppColors.borderMuted : AppColors.yellow,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(14),
-                        topRight: Radius.circular(14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final imageHeight = AppSpacing.promptCardImageHeight(
+                  constraints.maxWidth,
+                );
+                return SizedBox(
+                  height: imageHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isImage
+                              ? AppColors.borderMuted
+                              : AppColors.yellow,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(14),
+                            topRight: Radius.circular(14),
+                          ),
+                        ),
+                        child: isImage
+                            ? ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(14),
+                                  topRight: Radius.circular(14),
+                                ),
+                                child: CachedNetworkImage(
+                                  imageUrl: prompt.resultImageUrl!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              )
+                            : _buildAbstractShapes(),
                       ),
-                    ),
-                    child: isImage
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(14),
-                              topRight: Radius.circular(14),
+                      // Badge Overlapping
+                      Positioned(
+                        bottom: -10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isImage
+                                ? AppColors.green
+                                : const Color(0xFF60A5FA), // tag-blue
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.ink, width: 2),
+                          ),
+                          child: Text(
+                            isImage ? 'IMAGE' : 'TXT',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.ink,
                             ),
-                            child: CachedNetworkImage(
-                              imageUrl: prompt.resultImageUrl!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : _buildAbstractShapes(),
-                  ),
-                  // Badge Overlapping
-                  Positioned(
-                    bottom: -10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isImage
-                            ? AppColors.green
-                            : const Color(0xFF60A5FA), // tag-blue
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.ink, width: 2),
-                      ),
-                      child: Text(
-                        isImage ? 'IMAGE' : 'TXT',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.ink,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             // Content Area
             Expanded(
-              flex: 11,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
                 child: Column(
@@ -189,67 +202,10 @@ class PromptCard extends StatelessWidget {
                     // Tags
                     if (prompt.tags.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: [
-                          ...prompt.tags.take(2).map((tag) {
-                            final displayTag = tag.startsWith('#')
-                                ? tag
-                                : '#$tag';
-                            return Container(
-                              constraints: const BoxConstraints(maxWidth: 80),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEEF2F6),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppColors.ink.withValues(alpha: 0.15),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                displayTag,
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.ink,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }),
-                          if (prompt.tags.length > 2)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppColors.ink.withValues(alpha: 0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                '+${prompt.tags.length - 2}',
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.muted,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                      PromptCardTagRow(tags: prompt.tags),
                     ],
 
+                    const SizedBox(height: 6),
                     const Spacer(),
 
                     // Footer (Likes & Options)
@@ -492,42 +448,49 @@ class PromptCardSkeleton extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Gambar Konten (Neutral gray block with gradual shimmering effect)
-            Expanded(
-              flex: 7,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(14),
-                        topRight: Radius.circular(14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final imageHeight = AppSpacing.promptCardImageHeight(
+                  constraints.maxWidth,
+                );
+                return SizedBox(
+                  height: imageHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE5E7EB),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(14),
+                            topRight: Radius.circular(14),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  // Skeleton Badge
-                  Positioned(
-                    bottom: -10,
-                    left: 10,
-                    child: Container(
-                      width: 44,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD1D5DB),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.ink, width: 1.8),
+                      // Skeleton Badge
+                      Positioned(
+                        bottom: -10,
+                        left: 10,
+                        child: Container(
+                          width: 44,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD1D5DB),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.ink, width: 1.8),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             // Content Area (Judul, Deskripsi/JSON, Tag, Profil Pengguna)
             Expanded(
-              flex: 11,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
                 child: Column(
