@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/prompt_network_image.dart';
 import '../../../core/widgets/prompt_tag.dart';
 import '../../prompt/models/prompt_model.dart';
 import '../../prompt/screens/prompt_detail_screen.dart';
@@ -93,11 +93,15 @@ class PromptCard extends StatelessWidget {
                                   topLeft: Radius.circular(14),
                                   topRight: Radius.circular(14),
                                 ),
-                                child: CachedNetworkImage(
+                                child: PromptNetworkImage(
                                   imageUrl: prompt.resultImageUrl!,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(14),
+                                    topRight: Radius.circular(14),
+                                  ),
                                 ),
                               )
                             : _buildAbstractShapes(),

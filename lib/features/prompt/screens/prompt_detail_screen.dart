@@ -9,6 +9,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/supabase_provider.dart';
 import '../../../core/widgets/brutal_button.dart';
+import '../../../core/widgets/prompt_network_image.dart';
 import '../../explore/providers/explore_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../models/prompt_model.dart';
@@ -412,25 +413,12 @@ class _PromptDetailScreenState extends ConsumerState<PromptDetailScreen> {
                 bottom: BorderSide(color: AppColors.ink, width: 2),
               ),
             ),
-            child: CachedNetworkImage(
+            child: PromptNetworkImage(
               imageUrl: _currentPrompt.resultImageUrl!,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: AppColors.borderMuted,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: AppColors.borderMuted,
-                child: const Center(
-                  child: Icon(
-                    Icons.broken_image,
-                    size: 40,
-                    color: AppColors.muted,
-                  ),
-                ),
-              ),
+              width: double.infinity,
+              height: double.infinity,
+              errorIconSize: 40,
             ),
           ),
         ),
@@ -1356,15 +1344,16 @@ class _PromptDetailScreenState extends ConsumerState<PromptDetailScreen> {
                   panEnabled: true,
                   minScale: 0.5,
                   maxScale: 4.0,
-                  child: CachedNetworkImage(
+                  child: PromptNetworkImage(
                     imageUrl: imageUrl,
                     fit: BoxFit.contain,
-                    placeholder: (context, url) =>
-                        const CircularProgressIndicator(color: Colors.white),
-                    errorWidget: (context, url, error) => const Icon(
-                      Icons.broken_image,
-                      color: Colors.white,
-                      size: 50,
+                    width: double.infinity,
+                    height: double.infinity,
+                    placeholderColor: Colors.black,
+                    errorIconColor: Colors.white,
+                    errorIconSize: 50,
+                    placeholder: const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
                     ),
                   ),
                 ),

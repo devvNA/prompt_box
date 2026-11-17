@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +13,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/brutal_input.dart';
 import '../../../core/widgets/brutal_snackbar.dart';
+import '../../../core/widgets/prompt_network_image.dart';
 import '../models/prompt_model.dart';
 import '../providers/prompt_provider.dart';
 
@@ -178,13 +178,13 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
       // Baca bytes awal
       final rawBytes = await picked.readAsBytes();
 
-      // Kompres ke WebP (aman untuk Android, iOS, dan Web)
+      // Kompres ke JPEG agar cocok dengan contentType 'image/jpeg' di Supabase Storage
       final compressedBytes = await FlutterImageCompress.compressWithList(
         rawBytes,
         minWidth: 1080,
         minHeight: 1080,
-        quality: 75, // Kualitas 70-80 adalah sweet spot
-        format: CompressFormat.webp,
+        quality: 80,
+        format: CompressFormat.jpeg,
       );
 
       if (mounted) {
@@ -957,21 +957,12 @@ class _CreatePromptScreenState extends ConsumerState<CreatePromptScreen> {
                             borderRadius: BorderRadius.circular(6),
                             child: _imageBytes != null
                                 ? Image.memory(_imageBytes!, fit: BoxFit.cover)
-                                : CachedNetworkImage(
+                                : PromptNetworkImage(
                                     imageUrl: _imageUrl!,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => const Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        const Center(
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            color: AppColors.muted,
-                                          ),
-                                        ),
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    borderRadius: BorderRadius.circular(6),
                                   ),
                           ),
                         ),

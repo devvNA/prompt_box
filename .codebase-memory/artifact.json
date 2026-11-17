@@ -1,0 +1,11 @@
+{
+    "schema_version": 2,
+    "commit": "2305f466246dc618ea0df36665f4ba7c957b7bac",
+    "indexed_at": "2026-11-17T13:56:52Z",
+    "project": "D-DATA-PROJECTS-prompt_box",
+    "nodes": 12245,
+    "edges": 72546,
+    "original_size": 64618496,
+    "compressed_size": 11042161,
+    "compression_level": 3
+}

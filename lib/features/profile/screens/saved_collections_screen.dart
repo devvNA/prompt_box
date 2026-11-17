@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/prompt_network_image.dart';
 import '../../../core/widgets/prompt_tag.dart';
 import '../../dashboard/widgets/prompt_card.dart';
 import '../../prompt/models/prompt_model.dart';
@@ -545,11 +545,15 @@ class _SavedCollectionsScreenState
                                   topLeft: Radius.circular(12),
                                   topRight: Radius.circular(12),
                                 ),
-                                child: CachedNetworkImage(
+                                child: PromptNetworkImage(
                                   imageUrl: item.resultImageUrl!,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    topRight: Radius.circular(12),
+                                  ),
                                 ),
                               )
                             : _buildAbstractGraphic(item.category),

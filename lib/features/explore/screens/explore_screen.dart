@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/prompt_network_image.dart';
 import '../../../core/widgets/prompt_tag.dart';
 import '../../dashboard/widgets/prompt_card.dart';
 import '../../prompt/models/prompt_model.dart';
@@ -632,11 +633,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                   topLeft: Radius.circular(12),
                                   topRight: Radius.circular(12),
                                 ),
-                                child: CachedNetworkImage(
+                                child: PromptNetworkImage(
                                   imageUrl: item.resultImageUrl!,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    topRight: Radius.circular(12),
+                                  ),
                                 ),
                               )
                             : _buildAbstractGraphic(item.category),
